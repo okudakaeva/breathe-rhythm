@@ -1,0 +1,21 @@
+{
+  "name": "breathe-rhythm",
+  "version": "1.0.0",
+  "description": "Движок визуализации стихов в BreatheRhythm",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "keywords": [
+    "canvas",
+    "poetry",
+    "generative-art",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

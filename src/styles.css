@@ -1,0 +1,54 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #0b0b0b;
+    color: #f0f0f0;
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+}
+
+ui-button::part(ui-button) {
+    background: transparent;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+ui-button::part(ui-button):hover:not(:disabled) {
+    background: #00ffcc;
+    color: #050505;
+    box-shadow: 0 0 15px #00ffcc;
+}
+
+ui-button::part(ui-button):disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+ui-button ui-icon[name="loader"] svg {
+    animation: spin 1s linear infinite;
+}
+
