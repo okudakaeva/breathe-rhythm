@@ -78,18 +78,6 @@ export class BreatheRhythmEngineComponent extends HTMLElement {
     this.updateState();
   }
 
-  private get isRunning(): boolean {
-    return this.abortController !== null;
-  }
-
-  private get isFinished(): boolean {
-    return this.parsedPoem.length > 0 && this.state.currentLineIdx >= this.parsedPoem.length && !this.isRunning;
-  }
-
-  private get isPaused(): boolean {
-    return !this.isRunning && !this.isFinished && (this.state.currentLineIdx > 0 || this.textLines.some(l => l.length > 0));
-  }
-
   private configure (
       engineConfig?: Partial<BREngineConfig>,
       parserConfig?: Partial<BRParserConfig>
@@ -379,6 +367,18 @@ export class BreatheRhythmEngineComponent extends HTMLElement {
 
   public get isReady(): boolean {
     return this.poemRaw.length > 0;
+  }
+
+  public get isRunning(): boolean {
+    return this.abortController !== null;
+  }
+
+  public get isFinished(): boolean {
+    return this.parsedPoem.length > 0 && this.state.currentLineIdx >= this.parsedPoem.length && !this.isRunning;
+  }
+
+  public get isPaused(): boolean {
+    return !this.isRunning && !this.isFinished && (this.state.currentLineIdx > 0 || this.textLines.some(l => l.length > 0));
   }
 
   public pause(): void {
