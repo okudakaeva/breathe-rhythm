@@ -1,6 +1,6 @@
 import { BRContext, BREngineConfig, BRParserConfig, BRPoemPackage, BRToken } from './types.ts';
-import { BRParticle } from './BRParticle.ts';
-import { BRParser, BR_PARSER_CONFIG } from './BRParser.ts';
+import { Br_particle } from './br_particle.ts';
+import { Br_parser, BR_PARSER_CONFIG } from './br_parser.ts';
 
 const delay = (ms: number, signal?: AbortSignal) => {
   return new Promise<void>((resolve, reject) => {
@@ -54,7 +54,7 @@ export class BreatheRhythmEngine extends HTMLElement {
     currentScrollY: 0,
   }
 
-  private particles: BRParticle[] = [];
+  private particles: Br_particle[] = [];
   private textLines: string[] = [];
   private lineFadeFactors: number[] = [];
   private parsedPoem: BRToken[][] = [];
@@ -116,7 +116,7 @@ export class BreatheRhythmEngine extends HTMLElement {
 
     for (let i = 0; i < 60; i++) {
       this.particles.push(
-          new BRParticle(
+          new Br_particle(
               x + (Math.random() - 0.5) * 400,
               y + (Math.random() - 0.5) * 20,
               '#ffffff',
@@ -256,7 +256,7 @@ export class BreatheRhythmEngine extends HTMLElement {
   }
 
   private compileWordFinishedRegExp (): RegExp {
-    const stickySymbols = BRParser.getSymbols();
+    const stickySymbols = Br_parser.getSymbols();
     const escapedSymbols = stickySymbols.map(s => s === '.' ? `\\${s}` : s).join('');
     return new RegExp(`[${escapedSymbols}]$`);
   }
@@ -439,7 +439,7 @@ export class BreatheRhythmEngine extends HTMLElement {
     this.configure(this.poemConfig?.engine || {}, this.poemConfig?.parser || {});
 
     this.particles = [];
-    this.parsedPoem = this.poemRaw.map(line => BRParser.parse(line, this.parserConfig));
+    this.parsedPoem = this.poemRaw.map(line => Br_parser.parse(line, this.parserConfig));
     this.textLines = this.poemRaw.map(() => "");
     this.lineFadeFactors = this.poemRaw.map(() => 0);
     this.updateState({

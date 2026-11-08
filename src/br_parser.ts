@@ -24,7 +24,7 @@ export const BR_PARSER_RULES: BRParserRules = {
   },
 };
 
-export class BRParser {
+export class Br_parser {
   public static getSymbols(): string[] {
     return [
       ...BR_PARSER_RULES.hellip.filter(s => s.length === 1),

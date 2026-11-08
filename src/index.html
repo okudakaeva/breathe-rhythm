@@ -8,14 +8,41 @@
     <script src="./breathe_rhythm_engine.js" type="module"></script>
     <script src="./main.js" type="module"></script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml"
+          href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='-10' y='35' font-size='50'>✨</text><text x='10' y='75' font-size='70'>🎙️</text><text x='0' y='95' font-size='70'>🌊</text><text x='60' y='45' font-size='50'>✨</text></svg>"/>
+    <meta name="description"
+          content="Нативный декларативный графический движок для визуализации поэтических перформансов в реальном времени.">
+    <meta name="keywords" content="поэзия, инсталляция, цифровой арт, canvas, web components, typescript">
+    <meta name="author" content="Оксана Кудакаева">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://okudakaeva.github.io/breathe-rhythm/">
+    <meta property="og:title" content="В ритме дыхания — 🎙️🌊✨Breathe Rhythm — Поэтическая инсталляция">
+    <meta property="og:description"
+          content="Слова сгорают как холсты... Интерактивный Canvas-движок визуализации живой поэзии 🎙️🌊✨Breathe Rhythm">
+    <meta property="og:image" content="https://okudakaeva.github.io/breathe-rhythm/images/og-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Breathe Rhythm">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://okudakaeva.github.io/breathe-rhythm/">
+    <meta name="twitter:title" content="В ритме дыхания — 🎙️🌊✨Breathe Rhythm — Поэтическая инсталляция">
+    <meta name="twitter:description" content="Слова сгорают как холсты... Интерактивный Canvas-движок визуализации живой поэзии 🎙️🌊✨Breathe Rhythm">
+    <meta name="twitter:image" content="https://okudakaeva.github.io/breathe-rhythm/images/og-preview.png">
+    <meta name="theme-color" content="#0b0b0b">
 </head>
 <body>
 
 <breathe-rhythm id="engine"></breathe-rhythm>
 
 <div id="controls">
-    <ui-button id="btnStart" changeevent="engine-state-change"><ui-icon name="play" slot="icon"></ui-icon></ui-button>
-    <ui-button id="btnReset" changeevent="engine-state-change"><ui-icon name="reset" slot="icon"></ui-icon></ui-button>
+    <ui-button id="btnStart" changeevent="engine-state-change">
+        <ui-icon name="play" slot="icon"></ui-icon>
+    </ui-button>
+    <ui-button id="btnReset" changeevent="engine-state-change">
+        <ui-icon name="reset" slot="icon"></ui-icon>
+    </ui-button>
 </div>
 </body>
 </html>
