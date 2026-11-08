@@ -1,6 +1,6 @@
 import { BRContext, BREngineConfig, BRParserConfig, BRPoemPackage, BRToken } from './types.ts';
-import { BRParticle } from './BRParticle.ts';
-import { BRParser, BR_PARSER_CONFIG } from './BRParser.ts';
+import { BRParticle } from './br_particle.ts';
+import { BRParser, BR_PARSER_CONFIG } from './br_parser.ts';
 
 const delay = (ms: number, signal?: AbortSignal) => {
   return new Promise<void>((resolve, reject) => {
