@@ -2,7 +2,7 @@
   "name": "breathe-rhythm",
   "version": "1.0.0",
   "author": "Oksana Kudakaeva https://github.com/okudakaeva",
-  "description": "Движок визуализации стихов в BreatheRhythm",
+  "description": "Движок визуализации стихов BreatheRhythm",
   "license": "Custom Proprietary License (SEE IN LICENSE.md)",
   "repository": {
     "type": "git",
