@@ -46,7 +46,7 @@ jobs:
       - name: Архивация готовых артефактов (HTML, CSS, скомпилированный JS)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.' 
+          path: 'src' 
 
       - name: Публикация инсталляции в сеть
         id: deployment
