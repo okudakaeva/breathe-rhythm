@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "author": "Oksana Kudakaeva https://github.com/okudakaeva",
   "description": "Движок визуализации стихов в BreatheRhythm",
-  "main": "index.js",
+  "license": "Custom Proprietary License (SEE IN LICENSE.md)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/okudakaeva/breathe-rhythm.git"
+  },
+  "homepage": "https://okudakaeva.github.io/breathe-rhythm/",
+  "main": "main.ts",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch"
@@ -14,7 +20,6 @@
     "generative-art",
     "typescript"
   ],
-  "license": "ISC",
   "devDependencies": {
     "typescript": "^5.4.5"
   }
