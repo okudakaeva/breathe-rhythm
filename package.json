@@ -1,6 +1,7 @@
 {
   "name": "breathe-rhythm",
   "version": "1.0.0",
+  "author": "Oksana Kudakaeva https://github.com/okudakaeva",
   "description": "Движок визуализации стихов в BreatheRhythm",
   "main": "index.js",
   "scripts": {
@@ -13,7 +14,6 @@
     "generative-art",
     "typescript"
   ],
-  "author": "",
   "license": "ISC",
   "devDependencies": {
     "typescript": "^5.4.5"
