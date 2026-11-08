@@ -38,7 +38,7 @@ jobs:
       # ВАЖНО! Создаем 404.html из index.html прямо на этапе сборки,
       # чтобы нативный роутер перехватывал прямые ссылки без падения хостинга
       - name: Инъекция 404-хака для нативного роутинга
-        run: cp index.html 404.html
+        run: cp src/index.html src/404.html
 
       - name: Инициализация конфигурации GitHub Pages
         uses: actions/configure-pages@v4
