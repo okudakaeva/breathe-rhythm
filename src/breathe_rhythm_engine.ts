@@ -42,7 +42,7 @@ export interface BREngineState {
   currentScrollY: number;
 }
 
-export class BreatheRhythmEngineComponent extends HTMLElement {
+export class BreatheRhythmEngine extends HTMLElement {
   private canvas!: HTMLCanvasElement;
   private ctx!: BRContext;
   private _abortController: AbortController | null = null;
@@ -93,7 +93,6 @@ export class BreatheRhythmEngineComponent extends HTMLElement {
   private async loadData (
       onLoad: (response: BRPoemPackage[]) => void = () => undefined
   ): Promise<BRPoemPackage[] | void> {
-    try {
       const response = await fetch('./data.json');
       if (!response.ok) {
         throw new Error(`Ошибка загрузки: ${ response.statusText }`);
@@ -101,9 +100,6 @@ export class BreatheRhythmEngineComponent extends HTMLElement {
       const data: BRPoemPackage[] = await response.json();
       onLoad(data);
       return data;
-    } catch (error) {
-      console.error("[Ошибка] Ошибка данных:", error);
-    }
   }
 
   private resizeCanvas (): void {
@@ -480,4 +476,4 @@ export class BreatheRhythmEngineComponent extends HTMLElement {
   }
 }
 
-customElements.define('breathe-rhythm', BreatheRhythmEngineComponent);
+customElements.define('breathe-rhythm', BreatheRhythmEngine);
