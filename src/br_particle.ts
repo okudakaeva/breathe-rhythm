@@ -1,6 +1,6 @@
 import { BRColor, BRContext } from './types.ts';
 
-export class Br_particle {
+export class BrParticle {
   x: number;
   y: number;
   size: number;
