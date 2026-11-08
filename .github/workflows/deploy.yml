@@ -1,0 +1,57 @@
+name: Deploy Performance to GitHub Pages 🎙️🌊✨
+
+on:
+  push:
+    branches:
+      - main # Робот будет запускаться каждый раз, когда ты делаешь git push в ветку main
+
+# Разрешаем скрипту деплоить контент на GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout исходного кода
+        uses: actions/checkout@v4
+
+      - name: Установка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-size: 20
+          cache: 'npm'
+
+      - name: Установка зависимостей компилятора
+        run: npm ci
+
+      - name: Сборка TypeScript проекта (npm run build)
+        run: npm run build
+
+      # ВАЖНЫЙ ХАК ДЛЯ SPA: Создаем 404.html из index.html прямо на этапе сборки,
+      # чтобы нативный роутер перехватывал прямые ссылки на стихи без падения хостинга
+      - name: Инъекция 404-хака для нативного роутинга
+        run: cp index.html 404.html
+
+      - name: Инициализация конфигурации GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Архивация готовых артефактов (HTML, CSS, скомпилированный JS)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Указываем, какие файлы заливать. 
+          # Если tsc компилирует файлы прямо в те же папки, то корень сайта — это '.'
+          path: '.' 
+
+      - name: Публикация инсталляции в сеть
+        id: deployment
+        uses: actions/deploy-pages@v4
