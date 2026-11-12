@@ -3,6 +3,9 @@ export class UIButton extends HTMLElement {
   private _engine: any = null;
   private changeEvent: string = '';
   private handleStateChange = () => this.updateUI();
+
+  public label: string = '';
+  public disabled: boolean = false;
   public onClickHandler: (button: HTMLButtonElement, engine: any) => void | Promise<void> = () => undefined;
   public onUpdateHandler: (button: HTMLButtonElement, engine: any) => void = () => undefined;
 
@@ -12,7 +15,7 @@ export class UIButton extends HTMLElement {
   }
 
   static get observedAttributes (): string[] {
-    return ['changeevent'];
+    return ['changeevent', 'label', 'disabled'];
   }
 
   private syncListener (remove: boolean = false): void {
@@ -56,6 +59,22 @@ export class UIButton extends HTMLElement {
       this.syncListener(false);
       this.updateUI();
     }
+
+    if (name === 'label') {
+      this.label = newValue || '';
+
+      if (this.button) {
+        this.button.setAttribute('aria-label', this.label);
+      }
+    }
+
+    if (name === 'disabled') {
+      this.disabled = newValue !== null && newValue !== 'false';
+
+      if (this.button) {
+        this.button.disabled = this.disabled;
+      }
+    }
   }
 
   private render (): void {
@@ -63,6 +82,8 @@ export class UIButton extends HTMLElement {
     slot.setAttribute('name', 'icon');
 
     this.button = document.createElement('button');
+    this.button.setAttribute('aria-label', this.label || this.getAttribute('label') || '');
+    this.button.disabled = this.disabled || this.hasAttribute('disabled');
     this.button.appendChild(slot);
 
     this.button.addEventListener('click', async () => {

@@ -17,7 +17,10 @@ if (!engine || !btnStart || !btnReset) {
   };
 
   btnStart.onClickHandler = async (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
-    if (!instance) return;
+    if (!instance) {
+      return;
+    }
+
     if (instance.isRunning) {
       instance.pause();
     } else {
@@ -27,14 +30,17 @@ if (!engine || !btnStart || !btnReset) {
   btnStart.onUpdateHandler = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
     if (!instance.isReady) {
       setButtonIcon(btnStart, 'loader');
-      button.disabled = true;
+      btnStart.setAttribute('label', 'Загрузка');
+      btnStart.setAttribute('disabled', '');
       return;
     }
 
-    button.disabled = false;
+    btnStart.removeAttribute('disabled');
     if (instance.isRunning) {
+      btnStart.setAttribute('label', 'Пауза');
       setButtonIcon(btnStart, 'pause');
     } else {
+      btnStart.setAttribute('label', 'Старт');
       setButtonIcon(btnStart, 'play');
     }
   };
