@@ -27,7 +27,7 @@ const delay = (ms: number, signal?: AbortSignal): Promise<DelayResult> => {
     }
 
     let remaining = ms;
-    let lastTime: number | null = null;
+    let lastTime = performance.now();
     let rafId: number | null = null;
 
     const onAbort = () => {
@@ -42,7 +42,7 @@ const delay = (ms: number, signal?: AbortSignal): Promise<DelayResult> => {
         return;
       }
 
-      const dt = lastTime !== null ? Math.min(now - lastTime, 100) : 0;
+      const dt = Math.min(Math.max(0, now - lastTime), 100);
       lastTime = now;
       remaining -= dt;
 
