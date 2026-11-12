@@ -64,6 +64,7 @@ export class BreatheRhythmEngine extends HTMLElement {
   private poemConfig: BRPoemPackage['config'] = {};
   private engineConfig: BREngineConfig = BR_ENGINE_CONFIG;
   private parserConfig: BRParserConfig = BR_PARSER_CONFIG;
+  private metrics = { font: '', paddingX: 0, lineHeight: 0, initialY: 0 };
 
   constructor () {
     super();
@@ -90,6 +91,47 @@ export class BreatheRhythmEngine extends HTMLElement {
     }
   }
 
+  private updateResponsiveMetrics (): void {
+    if (!this.canvas || !this.ctx) {
+      return;
+    }
+
+    const width = this.canvas.width;
+    const scale = Math.min(1, width / 768);
+
+    const fontMatch = this.engineConfig.font.match(/^(\d+(?:\.\d+)?)px\s+(.+)$/);
+    const baseFontSize = fontMatch ? parseFloat(fontMatch[1]) : 28;
+    const fontFamily = fontMatch ? fontMatch[2] : '"Courier New", monospace';
+
+    const paddingX = Math.max(20, Math.round(this.engineConfig.paddingX * scale));
+    let fontSize = Math.max(14, Math.round(baseFontSize * scale));
+    const maxWidth = Math.max(100, width - paddingX * 2);
+
+    if (this.parsedPoem.length > 0) {
+      this.ctx.font = `${fontSize}px ${fontFamily}`;
+      const longestLineWidth = Math.max(
+          0,
+          ...this.parsedPoem.map(tokens =>
+              this.ctx.measureText(tokens.reduce((acc, t) => acc + (t.value ?? ''), '')).width
+          )
+      );
+
+      if (longestLineWidth > maxWidth) {
+        fontSize = Math.max(12, Math.floor(fontSize * (maxWidth / longestLineWidth)));
+      }
+    }
+
+    const fontRatio = fontSize / baseFontSize;
+
+    this.metrics = {
+      font: `${fontSize}px ${fontFamily}`,
+      paddingX,
+      lineHeight: Math.max(24, Math.round(this.engineConfig.lineHeight * fontRatio)),
+      initialY: Math.max(36, Math.round(this.engineConfig.initialY * scale)),
+    };
+  }
+
+
   private async loadData (
       onLoad: (response: BRPoemPackage[]) => void = () => undefined
   ): Promise<BRPoemPackage[] | void> {
@@ -106,18 +148,20 @@ export class BreatheRhythmEngine extends HTMLElement {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
 
+    this.updateResponsiveMetrics();
     this.drawFrame();
   }
 
   private triggerFlash (): void {
     const { currentLineIdx, currentScrollY } = this.state;
     const x = this.canvas.width / 2;
-    const y = this.engineConfig.initialY + (currentLineIdx * this.engineConfig.lineHeight) - currentScrollY + 15;
+    const y = this.metrics.initialY + (currentLineIdx * this.metrics.lineHeight) - currentScrollY + 15;
+    const spreadX = Math.min(400, this.canvas.width - this.metrics.paddingX * 2);
 
     for (let i = 0; i < 60; i++) {
       this.particles.push(
           new BRParticle(
-              x + (Math.random() - 0.5) * 400,
+              x + (Math.random() - 0.5) * spreadX,
               y + (Math.random() - 0.5) * 20,
               '#ffffff',
               this.ctx
@@ -204,7 +248,7 @@ export class BreatheRhythmEngine extends HTMLElement {
     this.canvas.style.backgroundColor = this.engineConfig.bgColor;
     this.ctx.fillStyle = this.engineConfig.bgColor;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.font = this.engineConfig.font;
+    this.ctx.font = this.metrics.font;
     this.ctx.textAlign = 'left';
 
     this.ctx.shadowBlur = 0;
@@ -226,8 +270,8 @@ export class BreatheRhythmEngine extends HTMLElement {
   private updateScroll (): void {
     const { currentLineIdx, currentScrollY } = this.state;
     const scrollIndex = Math.min(currentLineIdx, this.poemRaw.length - 1);
-    const visibleRowsCount = Math.ceil((this.canvas.height - this.engineConfig.initialY * 2) / this.engineConfig.lineHeight);
-    const targetScrollY = Math.max(0, (scrollIndex - (visibleRowsCount - 1)) * this.engineConfig.lineHeight);
+    const visibleRowsCount = Math.ceil((this.canvas.height - this.metrics.initialY * 2) / this.metrics.lineHeight);
+    const targetScrollY = Math.max(0, (scrollIndex - (visibleRowsCount - 1)) * this.metrics.lineHeight);
 
     this.state.currentScrollY += (targetScrollY - currentScrollY) * 0.05;
   }
@@ -327,8 +371,8 @@ export class BreatheRhythmEngine extends HTMLElement {
       }
 
       const { currentScrollY, currentLineIdx } = this.state;
-      const x = this.engineConfig.paddingX;
-      let y = this.engineConfig.initialY + (i * this.engineConfig.lineHeight) - currentScrollY;
+      const x = this.metrics.paddingX;
+      let y = this.metrics.initialY + (i * this.metrics.lineHeight) - currentScrollY;
 
       if (y < 0 || y > this.canvas.height + 40) {
         continue;
@@ -442,6 +486,7 @@ export class BreatheRhythmEngine extends HTMLElement {
     this.parsedPoem = this.poemRaw.map(line => BRParser.parse(line, this.parserConfig));
     this.textLines = this.poemRaw.map(() => "");
     this.lineFadeFactors = this.poemRaw.map(() => 0);
+    this.updateResponsiveMetrics();
     this.updateState({
       currentLineIdx: 0,
       currentScrollY: 0,
