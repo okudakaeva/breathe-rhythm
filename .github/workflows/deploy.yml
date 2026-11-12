@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -19,6 +19,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout исходного кода
@@ -51,3 +53,58 @@ jobs:
       - name: Публикация инсталляции в сеть
         id: deployment
         uses: actions/deploy-pages@v4
+  lighthouse-audit:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout исходного кода
+        uses: actions/checkout@v4
+
+      - name: Установка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Запуск Lighthouse и генерация круглых SVG-счетчиков
+        run: |
+          npx lighthouse "${{ needs.build-and-deploy.outputs.page_url }}" \
+            --output=json \
+            --output-path=./lh-report.json \
+            --chrome-flags="--headless --no-sandbox" \
+            --only-categories=performance,accessibility,best-practices,seo
+
+          node -e '
+            const fs = require("fs");
+            const report = JSON.parse(fs.readFileSync("./lh-report.json", "utf8"));
+            const cats = report.categories;
+            fs.mkdirSync("./images", { recursive: true });
+
+            for (const [key, data] of Object.entries(cats)) {
+              const score = Math.round(data.score * 100);
+              const color = score >= 90 ? "#00cc66" : score >= 50 ? "#ffaa33" : "#ff4e42";
+              const circumference = 351.86;
+              const dash = ((score / 100) * circumference).toFixed(1);
+
+              const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+                <circle cx="60" cy="60" r="56" fill="${color}" fill-opacity="0.1" stroke="${color}" stroke-opacity="0.2" stroke-width="8"/>
+                <circle cx="60" cy="60" r="56" fill="none" stroke="${color}" stroke-width="8" stroke-dasharray="${dash} ${circumference}" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+                <text x="60" y="65" fill="${color}" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="700" text-anchor="middle">${score}</text>
+                <text x="60" y="92" fill="#888888" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle">${data.title}</text>
+              </svg>`;
+
+              fs.writeFileSync(`./images/lighthouse_${key}.svg`, svg);
+            }
+          '
+
+      - name: Подготовка ветки badges
+        run: |
+          git fetch origin badges || true
+          git checkout -B badges
+
+      - name: Коммит обновленных датчиков в репозиторий
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: update lighthouse svg gauges [skip ci]'
+          file_pattern: 'images/lighthouse_*.svg'
+          branch: badges
+          push_options: '--force'

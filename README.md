@@ -9,6 +9,8 @@
 
 https://okudakaeva.github.io/breathe-rhythm/
 
+![Performance](https://raw.githubusercontent.com/okudakaeva/breathe-rhythm/refs/heads/badges/images/lighthouse_performance.svg) ![Accessibility](https://raw.githubusercontent.com/okudakaeva/breathe-rhythm/refs/heads/badges/images/lighthouse_accessibility.svg) ![Best Practices](https://raw.githubusercontent.com/okudakaeva/breathe-rhythm/refs/heads/badges/images/lighthouse_best-practices.svg) ![SEO](https://raw.githubusercontent.com/okudakaeva/breathe-rhythm/refs/heads/badges/images/lighthouse_seo.svg)
+
 ---
 
 ## 🎭 Архитектурная Драматургия и Магия
