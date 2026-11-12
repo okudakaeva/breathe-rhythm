@@ -26,27 +26,9 @@ export interface BRParserConfig {
   colon: number;
 }
 
-export interface BRParserRules {
-  hellip: string[];
-  dash: string[];
-  ending: string[];
-  separators: string[];
-  colon: string[];
-  pause: BRTemplate;
-  effect: BRTemplate;
-}
-
 export interface BRToken {
   type: BRTokenType;
   value: string;
   delay: number;
 }
 
-export interface BRPoemPackage {
-  meta?: { title?: string; author?: string };
-  config?: {
-    engine?: Partial<BREngineConfig>;
-    parser?: Partial<BRParserConfig>;
-  };
-  lines: string[];
-}
