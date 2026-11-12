@@ -1,24 +1,61 @@
-import { BRContext, BREngineConfig, BRParserConfig, BRPoemPackage, BRToken } from './types.ts';
-import { BRParticle } from './br_particle.ts';
+import { BREngineConfig, BRParserConfig, BRToken } from './types.ts';
 import { BRParser, BR_PARSER_CONFIG } from './br_parser.ts';
+import { BRRenderer } from './br_renderer.ts';
 
-const delay = (ms: number, signal?: AbortSignal) => {
-  return new Promise<void>((resolve, reject) => {
+export interface BRPoemPackage {
+  meta: { title?: string; author: string };
+  config?: {
+    engine?: Partial<BREngineConfig>;
+    parser?: Partial<BRParserConfig>;
+  };
+  lines: string[];
+}
+
+export type BRSceneCommand =
+    | { type: 'char'; lineIndex: number; value: string; delay: number }
+    | { type: 'pause'; delay: number }
+    | { type: 'effect'; name: string; delay: number }
+    | { type: 'line-end'; lineIndex: number; delay: number }
+    | { type: 'finish'; delay: number };
+
+type DelayResult = { completed: boolean; remaining: number };
+
+const delay = (ms: number, signal?: AbortSignal): Promise<DelayResult> => {
+  return new Promise((resolve) => {
     if (signal?.aborted) {
-      return reject(new DOMException('Aborted', 'AbortError'));
+      return resolve({ completed: false, remaining: ms });
     }
 
-    const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort);
-      resolve();
-    }, ms);
+    let remaining = ms;
+    let lastTime: number | null = null;
+    let rafId: number | null = null;
 
     const onAbort = () => {
-      clearTimeout(timer);
-      reject(new DOMException('Aborted', 'AbortError'));
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      resolve({ completed: false, remaining: Math.max(0, remaining) });
     };
 
-    signal?.addEventListener('abort', onAbort);
+    const tick = (now: number) => {
+      if (signal?.aborted) {
+        return;
+      }
+
+      const dt = lastTime !== null ? Math.min(now - lastTime, 100) : 0;
+      lastTime = now;
+      remaining -= dt;
+
+      if (remaining <= 0) {
+        signal?.removeEventListener('abort', onAbort);
+        resolve({ completed: true, remaining: 0 });
+      } else {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+    rafId = requestAnimationFrame(tick);
   });
 };
 
@@ -37,439 +74,309 @@ const BR_ENGINE_CONFIG: BREngineConfig = {
   maxShadowBlur: 25
 };
 
-export interface BREngineState {
-  currentLineIdx: number;
-  currentScrollY: number;
-}
+type EnginePhase = 'idle' | 'running' | 'paused' | 'finished';
 
 export class BreatheRhythmEngine extends HTMLElement {
   private canvas!: HTMLCanvasElement;
-  private ctx!: BRContext;
+  private renderer!: BRRenderer;
   private _abortController: AbortController | null = null;
-  private scene: Generator<BRToken | number> | null = null;
+  private scene: Generator<BRSceneCommand> | null = null;
+  private pendingDelay: number = 0;
+  private pendingCommandType: BRSceneCommand['type'] | null = null;
+  private rafId: number | null = null;
   private boundResizeCanvas = this.resizeCanvas.bind(this);
 
-  public state: BREngineState = {
-    currentLineIdx: 0,
-    currentScrollY: 0,
-  }
-
-  private particles: BRParticle[] = [];
-  private textLines: string[] = [];
-  private lineFadeFactors: number[] = [];
-  private parsedPoem: BRToken[][] = [];
-
-  private poemRaw: BRPoemPackage['lines'] = [];
-  private poemMeta: BRPoemPackage['meta'] = {};
+  private tokens: BRToken[][] = [];
+  private rawText: BRPoemPackage['lines'] = [];
+  private poemMeta!: BRPoemPackage['meta'];
   private poemConfig: BRPoemPackage['config'] = {};
   private engineConfig: BREngineConfig = BR_ENGINE_CONFIG;
   private parserConfig: BRParserConfig = BR_PARSER_CONFIG;
-  private metrics = { font: '', paddingX: 0, lineHeight: 0, initialY: 0 };
+
+  private _phase: EnginePhase = 'idle';
 
   constructor () {
     super();
   }
 
-  private get abortController(): AbortController | null {
+  private get phase (): EnginePhase {
+    return this._phase;
+  }
+
+  private set phase (nextPhase: EnginePhase) {
+    this._phase = nextPhase;
+    this.renderer?.setRunning(nextPhase === 'running');
+    this.dispatchEvent(new CustomEvent('engine-state-change', { bubbles: true }));
+  }
+
+  private get abortController (): AbortController | null {
     return this._abortController;
   }
 
-  private set abortController(value: AbortController | null) {
+  private set abortController (value: AbortController | null) {
     this._abortController = value;
-    this.updateState();
   }
 
   private configure (
       engineConfig?: Partial<BREngineConfig>,
       parserConfig?: Partial<BRParserConfig>
   ): void {
-    if (engineConfig) {
-      this.engineConfig = { ...this.engineConfig, ...engineConfig };
-    }
-    if (parserConfig) {
-      this.parserConfig = { ...this.parserConfig, ...parserConfig };
-    }
+    this.engineConfig = { ...BR_ENGINE_CONFIG, ...(engineConfig || {}) };
+    this.parserConfig = { ...BR_PARSER_CONFIG, ...(parserConfig || {}) };
   }
-
-  private updateResponsiveMetrics (): void {
-    if (!this.canvas || !this.ctx) {
-      return;
-    }
-
-    const width = this.canvas.width;
-    const scale = Math.min(1, width / 768);
-
-    const fontMatch = this.engineConfig.font.match(/^(\d+(?:\.\d+)?)px\s+(.+)$/);
-    const baseFontSize = fontMatch ? parseFloat(fontMatch[1]) : 28;
-    const fontFamily = fontMatch ? fontMatch[2] : '"Courier New", monospace';
-
-    const paddingX = Math.max(20, Math.round(this.engineConfig.paddingX * scale));
-    let fontSize = Math.max(14, Math.round(baseFontSize * scale));
-    const maxWidth = Math.max(100, width - paddingX * 2);
-
-    if (this.parsedPoem.length > 0) {
-      this.ctx.font = `${fontSize}px ${fontFamily}`;
-      const longestLineWidth = Math.max(
-          0,
-          ...this.parsedPoem.map(tokens =>
-              this.ctx.measureText(tokens.reduce((acc, t) => acc + (t.value ?? ''), '')).width
-          )
-      );
-
-      if (longestLineWidth > maxWidth) {
-        fontSize = Math.max(12, Math.floor(fontSize * (maxWidth / longestLineWidth)));
-      }
-    }
-
-    const fontRatio = fontSize / baseFontSize;
-
-    this.metrics = {
-      font: `${fontSize}px ${fontFamily}`,
-      paddingX,
-      lineHeight: Math.max(24, Math.round(this.engineConfig.lineHeight * fontRatio)),
-      initialY: Math.max(36, Math.round(this.engineConfig.initialY * scale)),
-    };
-  }
-
 
   private async loadData (
       onLoad: (response: BRPoemPackage[]) => void = () => undefined
   ): Promise<BRPoemPackage[] | void> {
-      const response = await fetch('./data.json');
-      if (!response.ok) {
-        throw new Error(`Ошибка загрузки: ${ response.statusText }`);
-      }
-      const data: BRPoemPackage[] = await response.json();
-      onLoad(data);
-      return data;
-  }
+    const response = await fetch('./data.json');
 
-  private resizeCanvas (): void {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-
-    this.updateResponsiveMetrics();
-    this.drawFrame();
-  }
-
-  private triggerFlash (): void {
-    const { currentLineIdx, currentScrollY } = this.state;
-    const x = this.canvas.width / 2;
-    const y = this.metrics.initialY + (currentLineIdx * this.metrics.lineHeight) - currentScrollY + 15;
-    const spreadX = Math.min(400, this.canvas.width - this.metrics.paddingX * 2);
-
-    for (let i = 0; i < 60; i++) {
-      this.particles.push(
-          new BRParticle(
-              x + (Math.random() - 0.5) * spreadX,
-              y + (Math.random() - 0.5) * 20,
-              '#ffffff',
-              this.ctx
-          )
-      );
+    if (!response.ok) {
+      throw new Error(`Ошибка загрузки: ${ response.statusText }`);
     }
+    const data: BRPoemPackage[] = await response.json();
+    onLoad(data);
+    return data;
   }
 
-  private* sceneGenerator (): Generator<BRToken | number> {
-    for (let l = 0; l < this.parsedPoem.length; l++) {
-      this.state.currentLineIdx = l;
-      const tokens = this.parsedPoem[l];
-
-      for (let t = 0; t < tokens.length; t++) {
-        const token = tokens[t];
-
-        switch (token.type) {
-          case 'pause': {
-            yield token.delay;
-            break;
-          }
-          case 'effect': {
-            yield token;
-            break;
-          }
-          default: {
-            this.textLines[l] += token.value;
-            yield token.delay;
-            break;
-          }
-        }
-      }
-      yield this.engineConfig.lineEndDelay;
-    }
-
-    this.state.currentLineIdx += 1; //+step before final
-    yield this.engineConfig.finalDelay;
-  }
-
-  private renderLoop (signal: AbortSignal): void {
-    if (signal.aborted) {
+  private startRenderLoop (): void {
+    if (this.rafId !== null) {
       return;
     }
 
-    this.drawFrame();
+    const tick = () => {
+      this.rafId = null;
 
-    const hasActiveFading = this.lineFadeFactors.some((t, i) => {
-      const { currentLineIdx } = this.state;
+      if (!this.renderer) {
+        return;
+      }
 
-      return this.isFinished && t < 0.85 || i !== currentLineIdx && t > 0 && this.isRunning;
-    });
+      this.renderer.drawFrame();
 
-    const needAnimation = this.isRunning || this.particles.length > 0 || hasActiveFading;
+      const needAnimation =
+          this.isRunning ||
+          this.renderer.hasParticles ||
+          this.renderer.hasActiveFading ||
+          this.renderer.hasActiveScroll;
 
-    if (needAnimation) {
-      requestAnimationFrame(() => this.renderLoop(signal));
+      if (needAnimation) {
+        this.rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    this.rafId = requestAnimationFrame(tick);
+  }
+
+  private stopRenderLoop (): void {
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
     }
+  }
+
+  private applyCanvasSize (): void {
+    if (!this.canvas) {
+      return;
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = Math.round(window.innerWidth * dpr);
+    this.canvas.height = Math.round(window.innerHeight * dpr);
+  }
+
+  private resizeCanvas (): void {
+    this.applyCanvasSize();
+    this.renderer?.updateResponsiveMetrics();
+    this.renderer?.drawFrame();
   }
 
   private createCanvas (): void {
     this.canvas = document.createElement('canvas');
-    this.ctx = this.canvas.getContext('2d')!;
 
-    this.style.display = 'block';
-    this.style.position = 'absolute';
-    this.style.top = '0';
-    this.style.left = '0';
-    this.style.width = '100%';
-    this.style.height = '100dvh';
-    this.style.overflow = 'hidden';
+    Object.assign(this.style, {
+      display: 'block',
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100dvh',
+      overflow: 'hidden',
+    });
 
-    this.canvas.style.display = 'block';
-    this.canvas.style.position = 'absolute';
-    this.canvas.style.width = '100%';
-    this.canvas.style.height = '100dvh';
-    this.canvas.style.top = '0';
-    this.canvas.style.left = '0';
-    this.canvas.style.zIndex = '0';
+    Object.assign(this.canvas.style, {
+      display: 'block',
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100dvh',
+      zIndex: '0',
+    });
 
     this.appendChild(this.canvas);
   }
 
-  private clearCanvas (): void {
-    this.canvas.style.backgroundColor = this.engineConfig.bgColor;
-    this.ctx.fillStyle = this.engineConfig.bgColor;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.font = this.metrics.font;
-    this.ctx.textAlign = 'left';
+  private* sceneGenerator (): Generator<BRSceneCommand> {
+    for (let l = 0; l < this.tokens.length; l++) {
+      const lineTokens = this.tokens[l];
 
-    this.ctx.shadowBlur = 0;
-    this.ctx.shadowColor = 'transparent';
-  }
+      for (let t = 0; t < lineTokens.length; t++) {
+        const token = lineTokens[t];
 
-  private drawParticles (): void {
-    this.ctx.save();
-
-    this.particles = this.particles.filter(p => {
-      p.update();
-      p.draw();
-      return !p.isDead();
-    });
-
-    this.ctx.restore();
-  }
-
-  private updateScroll (): void {
-    const { currentLineIdx, currentScrollY } = this.state;
-    const scrollIndex = Math.min(currentLineIdx, this.poemRaw.length - 1);
-    const visibleRowsCount = Math.ceil((this.canvas.height - this.metrics.initialY * 2) / this.metrics.lineHeight);
-    const targetScrollY = Math.max(0, (scrollIndex - (visibleRowsCount - 1)) * this.metrics.lineHeight);
-
-    this.state.currentScrollY += (targetScrollY - currentScrollY) * 0.05;
-  }
-
-  private getLineFadeFactor (index: number): number {
-    const { currentLineIdx } = this.state;
-
-    if (this.isFinished) {
-      if (this.lineFadeFactors[index] < 0.85) {
-        this.lineFadeFactors[index] = Math.min(0.85, this.lineFadeFactors[index] + 0.015);
+        switch (token.type) {
+          case 'pause':
+            yield { type: 'pause', delay: token.delay };
+            break;
+          case 'effect':
+            yield { type: 'effect', name: token.value, delay: token.delay };
+            break;
+          default:
+            yield { type: 'char', lineIndex: l, value: token.value, delay: token.delay };
+            break;
+        }
       }
-    } else if (index === currentLineIdx && this.isRunning) {
-      this.lineFadeFactors[index] = 1.0;
-    } else if (this.lineFadeFactors[index] > 0.0) {
-      this.lineFadeFactors[index] = Math.max(0.0, this.lineFadeFactors[index] - 0.04);
+
+      const isLastLine = l === this.tokens.length - 1;
+      const delayAfterLine = isLastLine ? this.engineConfig.finalDelay : this.engineConfig.lineEndDelay;
+      yield { type: 'line-end', lineIndex: l, delay: delayAfterLine };
     }
 
-    return this.lineFadeFactors[index];
+    yield { type: 'finish', delay: 0 };
   }
 
-  private getLineShadowBlur (fadeFactor: number): number {
-    if (this.isFinished && fadeFactor < 0.4) {
-      return Math.sin((fadeFactor / 0.4) * Math.PI) * this.engineConfig.maxShadowBlur;
-    }
-    return 0;
+  public get isReady (): boolean {
+    return this.rawText.length > 0;
   }
 
-  private compileWordFinishedRegExp (): RegExp {
-    const stickySymbols = BRParser.getSymbols();
-    const escapedSymbols = stickySymbols.map(s => s === '.' ? `\\${s}` : s).join('');
-    return new RegExp(`[${escapedSymbols}]$`);
+  public get isRunning (): boolean {
+    return this.phase === 'running';
   }
 
-  private drawActiveWord (
-      text: string,
-      x: number,
-      y: number,
-      rgbVal: number,
-      opacity: number
-  ): void {
-    const lastSpaceIdx = text.lastIndexOf(' ');
-    let stableText = "";
-    let activeWord = text;
-    let stableWidth = 0;
+  public get isFinished (): boolean {
+    return this.phase === 'finished';
+  }
 
-    if (lastSpaceIdx !== -1) {
-      stableText = text.substring(0, lastSpaceIdx + 1);
-      activeWord = text.substring(lastSpaceIdx + 1);
-    }
-    const isWordFinished = this.compileWordFinishedRegExp().test(activeWord);
+  public get isPaused (): boolean {
+    return this.phase === 'paused';
+  }
 
-    if (isWordFinished) {
-      this.drawStaticLine(text, x, y, rgbVal, opacity, 0);
+  public pause (): void {
+    if (!this.isRunning) {
       return;
     }
 
-    if (stableText.length > 0) {
-      stableWidth = this.ctx.measureText(stableText).width;
-    }
-
-    this.ctx.fillStyle = `rgba(${ rgbVal }, ${ rgbVal }, ${ rgbVal }, ${ opacity })`;
-    this.ctx.shadowBlur = 0;
-    if (stableText.length > 0) {
-      this.ctx.fillText(stableText, x, y);
-    }
-
-    this.ctx.save();
-    this.ctx.fillStyle = this.engineConfig.activeTextColor;
-    this.ctx.shadowColor = this.engineConfig.shadowColor;
-    this.ctx.shadowBlur = 20;
-    this.ctx.fillText(activeWord, x + stableWidth, y);
-    this.ctx.restore();
-  }
-
-  private drawStaticLine (
-      text: string,
-      x: number,
-      y: number,
-      rgbVal: number,
-      opacity: number,
-      shadowBlur: number
-  ): void {
-    this.ctx.fillStyle = `rgba(${ rgbVal }, ${ rgbVal }, ${ rgbVal }, ${ opacity })`;
-    this.ctx.shadowColor = this.engineConfig.finishedShadowColor;
-    this.ctx.shadowBlur = shadowBlur;
-    this.ctx.fillText(text, x, y);
-  }
-
-  private drawFrame (): void {
-    this.clearCanvas();
-    this.drawParticles();
-    this.updateScroll();
-
-    for (let i = 0; i < this.poemRaw.length; i++) {
-      if (this.textLines[i] === undefined) {
-        continue;
-      }
-
-      const { currentScrollY, currentLineIdx } = this.state;
-      const x = this.metrics.paddingX;
-      let y = this.metrics.initialY + (i * this.metrics.lineHeight) - currentScrollY;
-
-      if (y < 0 || y > this.canvas.height + 40) {
-        continue;
-      }
-
-      const t = this.getLineFadeFactor(i);
-      const shadowBlur = this.getLineShadowBlur(t);
-      const rgbVal = Math.round(this.engineConfig.textColor + (255 - this.engineConfig.textColor) * t);
-      const opacity = 0.3 + (0.7 * t);
-      const currentText = this.textLines[i];
-      const tokens = this.parsedPoem[i];
-      const maxTextLength = tokens.reduce(
-          (sum, token) => sum + (token.value ? token.value.length : 0),
-          0
-      );
-      const isLinePrinting = currentText.length < maxTextLength;
-      const isBreakLine = currentText.length === 0;
-      const isCurrentActiveLine = i === currentLineIdx && !this.isFinished;
-
-      if (isCurrentActiveLine && isLinePrinting && !isBreakLine) {
-        this.drawActiveWord(currentText, x, y, rgbVal, opacity);
-      } else {
-        this.drawStaticLine(currentText, x, y, rgbVal, opacity, shadowBlur);
-      }
-    }
-  }
-
-  private updateState(fields: Partial<BREngineState> = {}): void {
-    this.state = { ...this.state, ...fields };
-    this.dispatchEvent(new CustomEvent('engine-state-change', { bubbles: true }));
-  }
-
-  public get isReady(): boolean {
-    return this.poemRaw.length > 0;
-  }
-
-  public get isRunning(): boolean {
-    return this.abortController !== null;
-  }
-
-  public get isFinished(): boolean {
-    return this.parsedPoem.length > 0 && this.state.currentLineIdx >= this.parsedPoem.length && !this.isRunning;
-  }
-
-  public get isPaused(): boolean {
-    return !this.isRunning && !this.isFinished && (this.state.currentLineIdx > 0 || this.textLines.some(l => l.length > 0));
-  }
-
-  public pause(): void {
     this.abortController?.abort();
   }
 
-  public async start (): Promise<void> {
-    if (this.isRunning) {
+  private async waitInterruptible (
+      ms: number,
+      commandType: BRSceneCommand['type'],
+      signal: AbortSignal
+  ): Promise<boolean> {
+    this.pendingCommandType = commandType;
+    this.pendingDelay = ms;
+
+    const { completed, remaining } = await delay(ms, signal);
+
+    if (!completed) {
+      this.pendingDelay = remaining;
+      return false;
+    }
+
+    this.pendingDelay = 0;
+    this.pendingCommandType = null;
+    return true;
+  }
+
+  private async updateScene (signal: AbortSignal): Promise<void> {
+    if (!this.scene) {
       return;
     }
 
-    this.abortController = new AbortController();
-    const signal = this.abortController.signal;
+    if (this.pendingDelay > 0 && this.pendingCommandType) {
+      const resumeDelay = this.pendingCommandType === 'line-end' || this.pendingCommandType === 'pause'
+          ? Math.max(200, Math.round(this.pendingDelay * 0.5))
+          : this.pendingDelay;
 
-    this.renderLoop(signal);
+      const resumed = await this.waitInterruptible(resumeDelay, this.pendingCommandType, signal);
+
+      if (!resumed) {
+        return;
+      }
+    }
+
+    let next = this.scene.next();
+
+    while (!next.done) {
+      const cmd = next.value;
+
+      switch (cmd.type) {
+        case 'char':
+          this.renderer.appendChar(cmd.lineIndex, cmd.value);
+          break;
+        case 'line-end':
+          this.renderer.completeLine(cmd.lineIndex);
+          break;
+        case 'effect':
+          if (cmd.name === 'flash') {
+            this.renderer.triggerFlash();
+          }
+          break;
+        case 'finish':
+          this.renderer.finishScene();
+          break;
+      }
+
+      if (cmd.delay > 0) {
+        const completed = await this.waitInterruptible(cmd.delay, cmd.type, signal);
+        if (!completed) {
+          return;
+        }
+      }
+
+      next = this.scene.next();
+    }
+
+    this.scene = null;
+    this.pendingDelay = 0;
+    this.pendingCommandType = null;
+    this.phase = 'finished';
+  }
+
+  public async start (): Promise<void> {
+    if (this.isRunning || !this.isReady) {
+      return;
+    }
+
+    if (this.isFinished) {
+      this.init();
+    }
+
+    const controller = new AbortController();
+    this.abortController = controller;
+    const { signal } = controller;
+
+    this.phase = 'running';
+    this.startRenderLoop();
 
     if (!this.scene) {
       this.scene = this.sceneGenerator();
     }
 
     try {
-      let next = this.scene.next();
-      while (!next.done) {
-
-        if (next.value) {
-          if (typeof next.value === 'number') {
-            await delay(next.value, signal);
-          } else if (next.value.type && next.value.type === 'effect') {
-            switch (next.value.value) {
-              case 'flash': {
-                this.triggerFlash();
-                break;
-              }
-              default:
-                break;
-            }
-          }
-        }
-
-        next = this.scene.next();
-      }
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.error("[Ошибка] Исключение в цикле анимации:", error);
-      }
+      await this.updateScene(signal);
+    } catch (error) {
+      this.phase = 'idle';
+      console.error('[Ошибка] Исключение в цикле анимации:', error);
     } finally {
-      this.abortController = null;
-
-      if (this.isFinished) {
-        this.scene = null;
+      if (signal.aborted && this.phase === 'running') {
+        this.phase = 'paused';
       }
+
+      if (this.abortController === controller) {
+        this.abortController = null;
+      }
+
+      this.startRenderLoop();
     }
   }
 
@@ -478,45 +385,51 @@ export class BreatheRhythmEngine extends HTMLElement {
       this.abortController.abort();
       this.abortController = null;
     }
+    this.stopRenderLoop();
     this.scene = null;
+    this.pendingDelay = 0;
+    this.pendingCommandType = null;
 
-    this.configure(this.poemConfig?.engine || {}, this.poemConfig?.parser || {});
+    this.configure(this.poemConfig?.engine, this.poemConfig?.parser);
 
-    this.particles = [];
-    this.parsedPoem = this.poemRaw.map(line => BRParser.parse(line, this.parserConfig));
-    this.textLines = this.poemRaw.map(() => "");
-    this.lineFadeFactors = this.poemRaw.map(() => 0);
-    this.updateResponsiveMetrics();
-    this.updateState({
-      currentLineIdx: 0,
-      currentScrollY: 0,
+    this.tokens = this.rawText.map(line => BRParser.parse(line, this.parserConfig));
+    this.renderer = new BRRenderer({
+      canvas: this.canvas,
+      lines: this.tokens.map(lineTokens => ({
+        text: lineTokens.reduce((acc, t) => acc + (t.value ?? ''), ''),
+        rendered: '',
+        isTyping: false,
+        fadeFactor: 0,
+      })),
+      engineConfig: this.engineConfig,
+      wordFinishedTest: BRParser.getWordFinishedTest(),
     });
 
-    this.drawFrame();
+    this.phase = 'idle';
+    this.renderer.drawFrame();
   }
 
   public async connectedCallback (): Promise<void> {
     this.createCanvas();
+    this.applyCanvasSize();
+    window.addEventListener('resize', this.boundResizeCanvas);
 
-    await this.loadData(async (response: BRPoemPackage[]) => {
+    await this.loadData((response: BRPoemPackage[]) => {
+      if (!this.isConnected) {
+        return;
+      }
       const pkg = response[0];
-      this.poemRaw = pkg.lines;
+      this.rawText = pkg.lines;
       this.poemMeta = pkg.meta;
       this.poemConfig = pkg.config;
 
       this.init();
     });
-
-    this.resizeCanvas();
-
-    window.addEventListener('resize', this.boundResizeCanvas);
   }
 
   public disconnectedCallback (): void {
-    if (this.abortController) {
-      this.abortController.abort();
-    }
-
+    this.abortController?.abort();
+    this.stopRenderLoop();
     window.removeEventListener('resize', this.boundResizeCanvas);
   }
 }
