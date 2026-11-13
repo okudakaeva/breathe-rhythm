@@ -1,8 +1,7 @@
-export class UIButton extends HTMLElement {
+import { UIComponent } from './ui_component.ts';
+
+export class UIButton extends UIComponent {
   private button!: HTMLButtonElement;
-  private _engine: any = null;
-  private changeEvent: string = '';
-  private handleStateChange = () => this.updateUI();
 
   public label: string = '';
   public disabled: boolean = false;
@@ -15,50 +14,18 @@ export class UIButton extends HTMLElement {
   }
 
   static get observedAttributes (): string[] {
-    return ['changeevent', 'label', 'disabled'];
-  }
-
-  private syncListener (remove: boolean = false): void {
-    if (!this._engine || !this.changeEvent) {
-      return;
-    }
-
-    if (remove) {
-      this._engine.removeEventListener(this.changeEvent, this.handleStateChange);
-    } else {
-      this._engine.addEventListener(this.changeEvent, this.handleStateChange);
-    }
-  }
-
-  public set engine (instance: any) {
-    this.syncListener(true);
-    this._engine = instance;
-    this.syncListener(false);
-    this.updateUI();
-  }
-
-  public get engine (): any {
-    return this._engine;
+    return [...super.observedAttributes, 'label', 'disabled'];
   }
 
   public connectedCallback (): void {
     if (!this.button) {
       this.render();
     }
-    this.updateUI();
+    super.connectedCallback();
   }
 
-  public disconnectedCallback (): void {
-    this.syncListener(true);
-  }
-
-  public attributeChangedCallback (name: string, _oldValue: string, newValue: string): void {
-    if (name === 'changeevent') {
-      this.syncListener(true);
-      this.changeEvent = newValue || '';
-      this.syncListener(false);
-      this.updateUI();
-    }
+  public attributeChangedCallback (name: string, oldValue: string, newValue: string): void {
+    super.attributeChangedCallback(name, oldValue, newValue);
 
     if (name === 'label') {
       this.label = newValue || '';
