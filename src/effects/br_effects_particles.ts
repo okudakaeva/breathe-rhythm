@@ -9,44 +9,6 @@ import {
 
 export type BRParticleEffectMode = 'wind' | 'embers' | 'snow' | 'sparks' | 'dandelion';
 export class BRParticleEffects {
-  private static drawCharByChar (
-      ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
-      segment: BRRenderSegment,
-      startX: number,
-      y: number,
-      rgbVal: number,
-      baseOpacity: number,
-      progress: number,
-      spreadRatio: number = 0.65,
-      revealDur: number = 0.25,
-      glowBlur: number = 14
-  ): void {
-    const chars = Array.from(segment.text);
-    const total = Math.max(1, chars.length);
-    let cursorX = startX;
-
-    for (let c = 0; c < chars.length; c++) {
-      const ch = chars[c];
-      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
-      const charStart = total > 1 ? (c / total) * spreadRatio : 0;
-      const charReveal = BREffectBase.clamp01((progress - charStart) / revealDur);
-
-      if (charReveal > 0.01) {
-        const ease = BREffectBase.easeOutQuad(charReveal);
-        BREffectBase.drawStyledText(ctx, ch, {
-          x: cursorX,
-          y,
-          rgbVal,
-          alpha: baseOpacity * ease,
-          shadowColor: config.shadowColor,
-          shadowBlur: (1 - ease) * glowBlur * dpr,
-        });
-      }
-      cursorX += chW;
-    }
-  }
 
   // ============================================================================
   // ПУБЛИЧНЫЙ API
@@ -211,7 +173,7 @@ export class BRParticleEffects {
   ): number {
     const chars = Array.from(segment.text);
     const total = Math.max(1, chars.length);
-    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
 
     if (segment.gusts && segment.gusts.length > 0) {
       ctx.save();
@@ -280,10 +242,14 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const p = BREffectBase.clamp01(segment.progress);
 
-    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.6, 0.25, 18);
+    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+      spreadRatio: 0.6,
+      revealDur: 0.25,
+      glowBlur: 18,
+    });
 
     const particles = segment.flowParticles;
     if (particles && particles.length > 0) {
@@ -324,11 +290,15 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const p = BREffectBase.clamp01(segment.progress);
     const particles = segment.flowParticles;
 
-    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.55, 0.32, 12);
+    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+      spreadRatio: 0.55,
+      revealDur: 0.32,
+      glowBlur: 12,
+    });
 
     if (particles && particles.length > 0) {
       ctx.save();
@@ -365,11 +335,15 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const p = BREffectBase.clamp01(segment.progress);
     const particles = segment.flowParticles;
 
-    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.65, 0.18, 20);
+    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+      spreadRatio: 0.65,
+      revealDur: 0.18,
+      glowBlur: 20,
+    });
 
     if (particles && particles.length > 0) {
       ctx.save();
@@ -412,9 +386,13 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const p = BREffectBase.clamp01(segment.progress);
-    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.4, 0.22, 12);
+    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+      spreadRatio: 0.4,
+      revealDur: 0.22,
+      glowBlur: 12,
+    });
     const particles = segment.flowParticles;
 
     if (particles && particles.length > 0) {
