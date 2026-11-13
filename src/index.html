@@ -3,10 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>В ритме дыхания — Breathe Rhythm Engine</title>
-    <script src="./ui/ui_button.js" type="module"></script>
-    <script src="./ui/ui_icon.js" type="module"></script>
-    <script src="./breathe_rhythm_engine.js" type="module"></script>
-    <script src="./main.js" type="module"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/svg+xml"
           href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='-10' y='35' font-size='50'>✨</text><text x='10' y='75' font-size='70'>🎙️</text><text x='0' y='95' font-size='70'>🌊</text><text x='60' y='45' font-size='50'>✨</text></svg>"/>
@@ -32,18 +28,38 @@
     <meta name="twitter:description" content="Слова сгорают как холсты... Интерактивный Canvas-движок визуализации живой поэзии 🎙️🌊✨Breathe Rhythm">
     <meta name="twitter:image" content="https://okudakaeva.github.io/breathe-rhythm/images/og-preview.png">
     <meta name="theme-color" content="#0b0b0b">
+    <script src="./ui/ui_overlay.js" type="module"></script>
+    <script src="./ui/ui_toolbar.js" type="module"></script>
+    <script src="./ui/ui_button.js" type="module"></script>
+    <script src="./ui/ui_icon.js" type="module"></script>
+    <script src="./breathe_rhythm_engine.js" type="module"></script>
+    <script src="./main.js" type="module"></script>
 </head>
 <body>
 
 <breathe-rhythm id="engine"></breathe-rhythm>
 
-<div id="controls">
+<ui-overlay id="pauseOverlay" delay="350" changeevent="engine-state-change">
+    <h2 class="pause-title">...ПАУЗА...</h2>
+    <ui-button id="btnResume" class="btn-play-large" changeevent="engine-state-change" label="Продолжить">
+        <ui-icon name="play" slot="icon"></ui-icon>
+    </ui-button>
+</ui-overlay>
+
+<ui-toolbar id="controls" changeevent="engine-state-change">
     <ui-button id="btnStart" changeevent="engine-state-change" label="Старт">
         <ui-icon name="play" slot="icon"></ui-icon>
     </ui-button>
-    <ui-button id="btnReset" changeevent="engine-state-change" label="Cброс">
+    <ui-button id="btnReset" changeevent="engine-state-change" label="Сброс">
         <ui-icon name="reset" slot="icon"></ui-icon>
     </ui-button>
-</div>
+</ui-toolbar>
+
+<ui-overlay id="startOverlay" delay="100" changeevent="engine-state-change">
+    <h1 class="pause-title">...BREATHE&nbsp;&nbsp;<br/>&nbsp;&nbsp;RHYTHM...</h1>
+    <ui-button id="btnInitStart" class="btn-play-large" changeevent="engine-state-change" label="Начать">
+        <ui-icon name="play" slot="icon"></ui-icon>
+    </ui-button>
+</ui-overlay>
 </body>
 </html>
