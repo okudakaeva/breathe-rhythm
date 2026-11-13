@@ -50,6 +50,10 @@ export class UIToolbar extends HTMLElement {
   }
 
   public updateUI (): void {
+    if (!this._engine) {
+      return;
+    }
+
     this.onUpdateHandler(this, this._engine);
   }
 }

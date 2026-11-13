@@ -29,6 +29,7 @@ const syncReadyState = (button: HTMLButtonElement, instance: BreatheRhythmEngine
   button.disabled = !instance || !instance.isReady;
 };
 const required = [engine, controls, startOverlay, pauseOverlay, btnInitStart, btnStart, btnReset, btnResume];
+let isInitialBoot = true;
 
 if (required.some(el => !el)) {
   console.error('[Ошибка] Не удалось найти элементы управления в DOM. Проверьте ID в HTML.');
@@ -40,6 +41,16 @@ if (required.some(el => !el)) {
 
   startOverlay.onUpdateHandler = (_overlay: HTMLElement, instance: BreatheRhythmEngine) => {
     return Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
+  };
+  startOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine) => {
+    const shouldShow = Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
+
+    if (shouldShow) {
+      _overlay.delay = isInitialBoot ? 0 : 170;
+      isInitialBoot = false;
+    }
+
+    return shouldShow;
   };
 
   pauseOverlay.onUpdateHandler = (_overlay: HTMLElement, instance: BreatheRhythmEngine) => {

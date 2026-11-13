@@ -120,6 +120,11 @@ ui-overlay[visible] > * {
     transform: translateY(0);
 }
 
+ui-overlay:not(:defined),
+ui-toolbar:not(:defined) {
+    transition: none !important;
+}
+
 .pause-title {
     margin: 0;
     text-align: center;

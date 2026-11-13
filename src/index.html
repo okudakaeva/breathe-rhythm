@@ -37,16 +37,16 @@
 </head>
 <body>
 
-<breathe-rhythm id="engine"></breathe-rhythm>
+<breathe-rhythm id="engine" visible></breathe-rhythm>
 
-<ui-overlay id="pauseOverlay" delay="350" changeevent="engine-state-change">
+<ui-overlay id="pauseOverlay" delay="350" hidden changeevent="engine-state-change">
     <h2 class="pause-title">...ПАУЗА...</h2>
     <ui-button id="btnResume" class="btn-play-large" changeevent="engine-state-change" label="Продолжить">
         <ui-icon name="play" slot="icon"></ui-icon>
     </ui-button>
 </ui-overlay>
 
-<ui-toolbar id="controls" changeevent="engine-state-change">
+<ui-toolbar id="controls" hidden changeevent="engine-state-change">
     <ui-button id="btnStart" changeevent="engine-state-change" label="Старт">
         <ui-icon name="play" slot="icon"></ui-icon>
     </ui-button>
@@ -55,7 +55,7 @@
     </ui-button>
 </ui-toolbar>
 
-<ui-overlay id="startOverlay" delay="100" changeevent="engine-state-change">
+<ui-overlay id="startOverlay" visible delay="0" changeevent="engine-state-change">
     <h1 class="pause-title">...BREATHE&nbsp;&nbsp;<br/>&nbsp;&nbsp;RHYTHM...</h1>
     <ui-button id="btnInitStart" class="btn-play-large" changeevent="engine-state-change" label="Начать">
         <ui-icon name="play" slot="icon"></ui-icon>

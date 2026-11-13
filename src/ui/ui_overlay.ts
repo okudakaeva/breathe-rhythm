@@ -5,7 +5,7 @@ export class UIOverlay extends HTMLElement {
   private handleStateChange = () => this.updateUI();
 
   public delay: number = 0;
-  public onUpdateHandler: (overlay: HTMLElement, engine: any) => boolean = () => false;
+  public onUpdateHandler: (overlay: UIOverlay, engine: any) => boolean = () => false;
 
   static get observedAttributes (): string[] {
     return ['changeevent', 'delay'];
@@ -64,6 +64,10 @@ export class UIOverlay extends HTMLElement {
   }
 
   public updateUI (): void {
+    if (!this._engine) {
+      return;
+    }
+
     const shouldShow = Boolean(this.onUpdateHandler(this, this._engine));
     this.clearShowTimer();
 
