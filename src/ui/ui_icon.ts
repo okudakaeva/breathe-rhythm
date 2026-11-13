@@ -3,39 +3,35 @@ const ICON_REGISTRY = {
   play: `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
   pause: `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`,
   reset: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>`,
-  loader: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10" stroke-dasharray="40 20"/></svg>`
+  loader: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10" stroke-dasharray="40 20"/></svg>`,
 } as const satisfies Record<string, string>;
 
 export type UIIconName = keyof typeof ICON_REGISTRY;
 
-const DEFAULT_ICON = 'none';
+const DEFAULT_ICON: UIIconName = 'none';
+
 export class UIIcon extends HTMLElement {
   public name: UIIconName = DEFAULT_ICON;
-  constructor() {
-    super();
-  }
 
-  private isValidIconName(name: string | null): name is UIIconName {
-    return name !== null && name in ICON_REGISTRY;
-  }
-
-  private render(): void {
-    const nameAttr = this.getAttribute('name');
-    const iconName: UIIconName  = this.isValidIconName(nameAttr) ? nameAttr : DEFAULT_ICON;
-    this.innerHTML = ICON_REGISTRY[iconName] || '';
-  }
-
-  public static get observedAttributes(): string[] {
+  static get observedAttributes (): string[] {
     return ['name'];
   }
 
-  public connectedCallback(): void {
+  private resolveIconName (value: string | null): UIIconName {
+    return value !== null && value in ICON_REGISTRY ? (value as UIIconName) : DEFAULT_ICON;
+  }
+
+  private render (): void {
+    this.name = this.resolveIconName(this.getAttribute('name'));
+    this.innerHTML = ICON_REGISTRY[this.name];
+  }
+
+  public connectedCallback (): void {
     this.render();
   }
 
-  public attributeChangedCallback(name: string, _oldValue: string | null, newValue: string | null): void {
-    if (name === 'name') {
-      this.name = this.isValidIconName(newValue) ? newValue : DEFAULT_ICON;
+  public attributeChangedCallback (name: string, oldValue: string | null, newValue: string | null): void {
+    if (name === 'name' && oldValue !== newValue) {
       this.render();
     }
   }

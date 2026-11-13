@@ -39,9 +39,6 @@ if (required.some(el => !el)) {
     _toolbar.toggleAttribute('hidden', !isVisible);
   };
 
-  startOverlay.onUpdateHandler = (_overlay: HTMLElement, instance: BreatheRhythmEngine) => {
-    return Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
-  };
   startOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine) => {
     const shouldShow = Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
 

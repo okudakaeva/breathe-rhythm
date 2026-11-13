@@ -1,14 +1,13 @@
-export class UIOverlay extends HTMLElement {
-  private _engine: any = null;
-  private changeEvent: string = '';
+import { UIComponent } from './ui_component.ts';
+
+export class UIOverlay extends UIComponent {
   private showTimer: number | null = null;
-  private handleStateChange = () => this.updateUI();
 
   public delay: number = 0;
   public onUpdateHandler: (overlay: UIOverlay, engine: any) => boolean = () => false;
 
   static get observedAttributes (): string[] {
-    return ['changeevent', 'delay'];
+    return [...super.observedAttributes, 'delay'];
   }
 
   private clearShowTimer (): void {
@@ -18,45 +17,13 @@ export class UIOverlay extends HTMLElement {
     }
   }
 
-  private syncListener (remove: boolean = false): void {
-    if (!this._engine || !this.changeEvent) {
-      return;
-    }
-
-    if (remove) {
-      this._engine.removeEventListener(this.changeEvent, this.handleStateChange);
-    } else {
-      this._engine.addEventListener(this.changeEvent, this.handleStateChange);
-    }
-  }
-
-  public set engine (instance: any) {
-    this.syncListener(true);
-    this._engine = instance;
-    this.syncListener(false);
-    this.updateUI();
-  }
-
-  public get engine (): any {
-    return this._engine;
-  }
-
-  public connectedCallback (): void {
-    this.updateUI();
-  }
-
   public disconnectedCallback (): void {
     this.clearShowTimer();
-    this.syncListener(true);
+    super.disconnectedCallback();
   }
 
-  public attributeChangedCallback (name: string, _oldValue: string, newValue: string): void {
-    if (name === 'changeevent') {
-      this.syncListener(true);
-      this.changeEvent = newValue || '';
-      this.syncListener(false);
-      this.updateUI();
-    }
+  public attributeChangedCallback (name: string, oldValue: string, newValue: string): void {
+    super.attributeChangedCallback(name, oldValue, newValue);
 
     if (name === 'delay') {
       this.delay = Math.max(0, Number(newValue) || 0);

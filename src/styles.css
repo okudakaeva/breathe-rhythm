@@ -11,15 +11,6 @@ body {
     height: 100vh;
 }
 
-#controls {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 15px;
-}
-
 ui-button::part(ui-button) {
     background: transparent;
     color: #00ffcc;
@@ -46,8 +37,11 @@ ui-button::part(ui-button):disabled {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
+
 ui-button ui-icon[name="loader"] svg {
     animation: spin 1s linear infinite;
 }
