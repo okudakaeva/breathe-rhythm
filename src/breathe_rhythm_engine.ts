@@ -1,6 +1,7 @@
 import { BREngineConfig, BRParserConfig, BRToken } from './types.ts';
 import { BRParser, BR_PARSER_CONFIG } from './br_parser.ts';
 import { BRRenderer } from './br_renderer.ts';
+import { BRDelay } from './br_delay.ts';
 
 export interface BRPoemPackage {
   meta: { title?: string; author: string };
@@ -13,51 +14,12 @@ export interface BRPoemPackage {
 
 export type BRSceneCommand =
     | { type: 'char'; lineIndex: number; value: string; delay: number }
+    | { type: 'tag'; lineIndex: number; tag: string; value: string; delay: number, param?: string }
     | { type: 'pause'; delay: number }
     | { type: 'effect'; name: string; delay: number }
     | { type: 'line-end'; lineIndex: number; delay: number }
     | { type: 'finish'; delay: number };
 
-type DelayResult = { completed: boolean; remaining: number };
-
-const delay = (ms: number, signal?: AbortSignal): Promise<DelayResult> => {
-  return new Promise((resolve) => {
-    if (signal?.aborted) {
-      return resolve({ completed: false, remaining: ms });
-    }
-
-    let remaining = ms;
-    let lastTime = performance.now();
-    let rafId: number | null = null;
-
-    const onAbort = () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
-      resolve({ completed: false, remaining: Math.max(0, remaining) });
-    };
-
-    const tick = (now: number) => {
-      if (signal?.aborted) {
-        return;
-      }
-
-      const dt = Math.min(Math.max(0, now - lastTime), 100);
-      lastTime = now;
-      remaining -= dt;
-
-      if (remaining <= 0) {
-        signal?.removeEventListener('abort', onAbort);
-        resolve({ completed: true, remaining: 0 });
-      } else {
-        rafId = requestAnimationFrame(tick);
-      }
-    };
-
-    signal?.addEventListener('abort', onAbort, { once: true });
-    rafId = requestAnimationFrame(tick);
-  });
-};
 
 const BR_ENGINE_CONFIG: BREngineConfig = {
   bgColor: '#0b0b0b',
@@ -232,6 +194,16 @@ export class BreatheRhythmEngine extends HTMLElement {
           default:
             yield { type: 'char', lineIndex: l, value: token.value, delay: token.delay };
             break;
+          case 'tag':
+            yield {
+              type: 'tag',
+              lineIndex: l,
+              tag: token.tag || 'wind',
+              value: token.value,
+              delay: token.delay,
+              param: token.param,
+            };
+            break;
         }
       }
 
@@ -242,6 +214,86 @@ export class BreatheRhythmEngine extends HTMLElement {
 
     yield { type: 'finish', delay: 0 };
   }
+
+  private async waitInterruption (
+      ms: number,
+      commandType: BRSceneCommand['type'],
+      signal: AbortSignal
+  ): Promise<boolean> {
+    this.pendingCommandType = commandType;
+    this.pendingDelay = ms;
+
+    const { completed, remaining } = await BRDelay(ms, signal);
+
+    if (!completed) {
+      this.pendingDelay = remaining;
+      return false;
+    }
+
+    this.pendingDelay = 0;
+    this.pendingCommandType = null;
+    return true;
+  }
+
+  private async updateScene (signal: AbortSignal): Promise<void> {
+    if (!this.scene) {
+      return;
+    }
+
+    if (this.pendingDelay > 0 && this.pendingCommandType) {
+      const resumeDelay = this.pendingCommandType === 'line-end' || this.pendingCommandType === 'pause'
+          ? Math.max(200, Math.round(this.pendingDelay * 0.5))
+          : this.pendingDelay;
+
+      const resumed = await this.waitInterruption(resumeDelay, this.pendingCommandType, signal);
+
+      if (!resumed) {
+        return;
+      }
+    }
+
+    let next = this.scene.next();
+
+    while (!next.done) {
+      const cmd = next.value;
+
+      switch (cmd.type) {
+        case 'char':
+          this.renderer.appendChar(cmd.lineIndex, cmd.value);
+          break;
+        case 'line-end':
+          this.renderer.completeLine(cmd.lineIndex);
+          break;
+        case 'effect':
+          this.renderer.renderEffect(cmd.name);
+          break;
+        case 'finish':
+          this.renderer.finishScene();
+          break;
+        case 'tag':
+          this.renderer.appendTag(cmd.lineIndex, cmd.tag, cmd.value, cmd.delay, cmd.param);
+          break;
+      }
+
+      if (cmd.delay > 0) {
+        const completed = await this.waitInterruption(cmd.delay, cmd.type, signal);
+        if (!completed) {
+          return;
+        }
+      }
+
+      next = this.scene.next();
+    }
+
+    this.scene = null;
+    this.pendingDelay = 0;
+    this.pendingCommandType = null;
+    this.phase = 'finished';
+  }
+
+  // ============================================================================
+  // ПУБЛИЧНЫЙ API
+  // ============================================================================
 
   public get isReady (): boolean {
     return this.rawText.length > 0;
@@ -265,81 +317,6 @@ export class BreatheRhythmEngine extends HTMLElement {
     }
 
     this.abortController?.abort();
-  }
-
-  private async waitInterruptible (
-      ms: number,
-      commandType: BRSceneCommand['type'],
-      signal: AbortSignal
-  ): Promise<boolean> {
-    this.pendingCommandType = commandType;
-    this.pendingDelay = ms;
-
-    const { completed, remaining } = await delay(ms, signal);
-
-    if (!completed) {
-      this.pendingDelay = remaining;
-      return false;
-    }
-
-    this.pendingDelay = 0;
-    this.pendingCommandType = null;
-    return true;
-  }
-
-  private async updateScene (signal: AbortSignal): Promise<void> {
-    if (!this.scene) {
-      return;
-    }
-
-    if (this.pendingDelay > 0 && this.pendingCommandType) {
-      const resumeDelay = this.pendingCommandType === 'line-end' || this.pendingCommandType === 'pause'
-          ? Math.max(200, Math.round(this.pendingDelay * 0.5))
-          : this.pendingDelay;
-
-      const resumed = await this.waitInterruptible(resumeDelay, this.pendingCommandType, signal);
-
-      if (!resumed) {
-        return;
-      }
-    }
-
-    let next = this.scene.next();
-
-    while (!next.done) {
-      const cmd = next.value;
-
-      switch (cmd.type) {
-        case 'char':
-          this.renderer.appendChar(cmd.lineIndex, cmd.value);
-          break;
-        case 'line-end':
-          this.renderer.completeLine(cmd.lineIndex);
-          break;
-        case 'effect':
-          if (cmd.name === 'flash') {
-            this.renderer.triggerFlash();
-          }
-          break;
-        case 'finish':
-          this.renderer.finishScene();
-          break;
-      }
-
-      if (cmd.delay > 0) {
-        const completed = await this.waitInterruptible(cmd.delay, cmd.type, signal);
-        if (!completed) {
-          return;
-        }
-      }
-
-      next = this.scene.next();
-    }
-
-    this.scene = null;
-    this.pendingDelay = 0;
-    this.pendingCommandType = null;
-    this.phase = 'finished';
   }
 
   public async start (): Promise<void> {
@@ -398,6 +375,7 @@ export class BreatheRhythmEngine extends HTMLElement {
       lines: this.tokens.map(lineTokens => ({
         text: lineTokens.reduce((acc, t) => acc + (t.value ?? ''), ''),
         rendered: '',
+        segments: [],
         isTyping: false,
         fadeFactor: 0,
       })),

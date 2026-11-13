@@ -21,18 +21,22 @@ export class BRParticle {
     this.ctx = ctx;
   }
 
-  update () {
+  // ============================================================================
+  // ПУБЛИЧНЫЙ API
+  // ============================================================================
+
+  public update (): void {
     this.x += this.speedX;
     this.y += this.speedY;
     this.alpha = Math.max(0, this.alpha - 0.02);
     this.size *= 0.985;
   }
 
-  isDead (): boolean {
+  public isDead (): boolean {
     return this.alpha <= 0.015;
   }
 
-  draw () {
+  public draw (): void {
     if (!this.ctx || this.isDead()) {
       return;
     }

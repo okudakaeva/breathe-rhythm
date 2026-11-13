@@ -1,4 +1,5 @@
 import { BRParserConfig, BRToken, BRTemplate } from './types.ts';
+import { BRTags } from './br_tags.ts';
 
 export interface BRParserRules {
   hellip: string[];
@@ -36,13 +37,74 @@ export const BR_PARSER_RULES: BRParserRules = {
 };
 
 export class BRParser {
-  public static getSymbols (): string[] {
+  private static getSymbols (): string[] {
     return [
       ...BR_PARSER_RULES.hellip.filter(s => s.length === 1),
       ...BR_PARSER_RULES.ending,
       ...BR_PARSER_RULES.separators,
     ];
   }
+
+  private static escapeRegExp (str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private static parseTag (
+      tagName: string,
+      innerText: string,
+      param: string | undefined,
+      rules: BRParserRules
+  ): BRToken[] {
+    const openEsc = this.escapeRegExp(rules.pause.open);
+    const closeEsc = this.escapeRegExp(rules.pause.close);
+    const pauseRegex = new RegExp(`${ openEsc }(\\d+)${ closeEsc }`, 'g');
+
+    const cleanText = innerText.replace(pauseRegex, '');
+    const totalDuration = BRTags.calcDuration(tagName, cleanText, param);
+    const totalChars = Math.max(1, cleanText.length);
+
+    const result: BRToken[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = pauseRegex.exec(innerText)) !== null) {
+      const chunk = innerText.slice(lastIndex, match.index);
+      if (chunk.length > 0) {
+        result.push({
+          type: 'tag',
+          tag: tagName,
+          param,
+          value: chunk,
+          delay: Math.max(150, Math.round(totalDuration * (chunk.length / totalChars))),
+        });
+      }
+
+      const parsed = parseInt(match[1], 10);
+      const ms = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+      result.push({ type: 'pause', value: '', delay: ms });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    const tailChunk = innerText.slice(lastIndex);
+    if (tailChunk.length > 0) {
+      result.push({
+        type: 'tag',
+        tag: tagName,
+        param,
+        value: tailChunk,
+        delay: lastIndex === 0
+            ? totalDuration
+            : Math.max(150, Math.round(totalDuration * (tailChunk.length / totalChars))),
+      });
+    }
+
+    return result;
+  }
+
+  // ============================================================================
+  // ПУБЛИЧНЫЙ API
+  // ============================================================================
 
   public static parse (
       lineStr: string,
@@ -58,6 +120,18 @@ export class BRParser {
       const third = lineStr[i + 2];
       const isHellip = rules.hellip.includes(current);
       const isDash = rules.dash.includes(next);
+
+      if (current === '<') {
+        const tagMatch = lineStr.slice(i).match(/^<([a-zA-Z0-9_-]+)(?::([^>]+))?>([\s\S]*?)<\/\1>/);
+
+        if (tagMatch) {
+          const [fullMatch, tagName, rawParam, innerText] = tagMatch;
+          const param = rawParam?.trim();
+          tokens.push(...this.parseTag(tagName, innerText, param, rules));
+          i += fullMatch.length;
+          continue;
+        }
+      }
 
       if (current === rules.pause.open) {
         const end = lineStr.indexOf(rules.pause.close, i + 1);
@@ -98,7 +172,7 @@ export class BRParser {
         tokens.push({ type: 'colon', value: current, delay: config.colon });
         i++;
       } else {
-        tokens.push({ type: 'char', value: current, delay: config.char });
+        tokens.push({ type: 'char', value: current, delay: current === ' ' ? Math.round(config.char * 0.5) : config.char });
         i++;
       }
     }
@@ -110,6 +184,6 @@ export class BRParser {
     const stickySymbols = BRParser.getSymbols();
     const escapedSymbols = stickySymbols.map(s => (s === '.' ? `\\${ s }` : s)).join('');
 
-    return new RegExp(`[${escapedSymbols}]$`);
+    return new RegExp(`[${ escapedSymbols }]$`);
   }
 }

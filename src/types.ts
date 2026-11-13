@@ -1,7 +1,9 @@
-export type BRTokenType = 'char' | 'hellip' | 'dash' | 'pause' | 'effect' | 'ending' | 'separators' | 'colon';
+export type BRTokenType = 'char' | 'hellip' | 'dash' | 'pause' | 'effect' | 'ending' | 'separators' | 'colon' | 'tag';
+export type BREffectType = 'syllabic' | 'mask' | 'particles' | 'simple';
 export type BRColor = string | CanvasGradient | CanvasPattern;
 export type BRContext = CanvasRenderingContext2D;
-export type BRTemplate = {open: string, close: string};
+export type BRTemplate = { open: string; close: string };
+
 export interface BREngineConfig {
   bgColor: string;
   textColor: number;
@@ -30,5 +32,6 @@ export interface BRToken {
   type: BRTokenType;
   value: string;
   delay: number;
+  tag?: string;
+  param?: string;
 }
-
