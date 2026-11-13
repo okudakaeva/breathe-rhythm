@@ -17,7 +17,7 @@ export class BRMaskEffects {
     ctx.save();
     ctx.fillStyle = config.activeTextColor;
     ctx.shadowColor = config.shadowColor;
-    ctx.shadowBlur = 8 * dpr; // <-- Устанавливаем один раз вместо пересчета на каждой частице
+    ctx.shadowBlur = 8 * dpr;
 
     for (let i = 0; i < grains.length; i++) {
       const g = grains[i];
