@@ -69,7 +69,7 @@ export class BRTags {
     },
     fire: {
       type: 'syllabic',
-      calcDuration: (text) => Math.max(850, BRTags.splitIntoSyllables(text).length * 180 + 350),
+      calcDuration: (text) => Math.max(1000, BRTags.splitIntoSyllables(text).length * 250 + 400),
     },
     pulse: {
       type: 'syllabic',
@@ -77,7 +77,15 @@ export class BRTags {
     },
     ripple: {
       type: 'syllabic',
-      calcDuration: (text) => Math.max(900, BRTags.splitIntoSyllables(text).length * 170 + 400),
+      calcDuration: (text) => Math.max(1000, BRTags.splitIntoSyllables(text).length * 230 + 450),
+    },
+    sparkle: {
+      type: 'syllabic',
+      calcDuration: (text) => BRTags.calcSyllabicDuration(text),
+    },
+    orbit: {
+      type: 'syllabic',
+      calcDuration: (text) => BRTags.calcSyllabicDuration(text),
     },
   };
 
@@ -87,7 +95,7 @@ export class BRTags {
 
   private static calcSyllabicDuration (text: string): number {
     const syllables = this.splitIntoSyllables(text).length;
-    return syllables * 190 + (syllables > 1 ? 280 : 0);
+    return syllables * 260 + (syllables > 1 ? 350 : 0);
   }
 
   private static parseDurationParam (param?: string): number | null {
@@ -122,44 +130,38 @@ export class BRTags {
 
   public static splitIntoSyllables (text: string): string[] {
     const vowelRegex = /[аеёиоуыэюяaeiouy]/i;
-    const chars = Array.from(text);
-    const vowelIndices: number[] = [];
-
-    for (let i = 0; i < chars.length; i++) {
-      if (vowelRegex.test(chars[i])) {
-        vowelIndices.push(i);
-      }
-    }
-
-    if (vowelIndices.length <= 1) {
-      return [text];
-    }
-
+    const chunks = text.match(/(\S+\s*|\s+)/g) ?? [text];
     const parts: string[] = [];
-    let start = 0;
 
-    for (let v = 0; v < vowelIndices.length - 1; v++) {
-      const curVowel = vowelIndices[v];
-      const nextVowel = vowelIndices[v + 1];
+    for (const chunk of chunks) {
+      const chars = Array.from(chunk);
+      const vowelIndices: number[] = [];
 
-      let splitAt = -1;
-      for (let k = nextVowel - 1; k > curVowel; k--) {
-        if (chars[k] === ' ') {
-          splitAt = k + 1;
-          break;
+      for (let i = 0; i < chars.length; i++) {
+        if (vowelRegex.test(chars[i])) {
+          vowelIndices.push(i);
         }
       }
 
-      if (splitAt === -1) {
-        const consonantsBetween = nextVowel - curVowel - 1;
-        splitAt = consonantsBetween > 1 ? curVowel + 2 : curVowel + 1;
+      if (vowelIndices.length <= 1) {
+        parts.push(chunk);
+        continue;
       }
 
-      parts.push(chars.slice(start, splitAt).join(''));
-      start = splitAt;
+      let start = 0;
+      for (let v = 0; v < vowelIndices.length - 1; v++) {
+        const curVowel = vowelIndices[v];
+        const nextVowel = vowelIndices[v + 1];
+        const consonantsBetween = nextVowel - curVowel - 1;
+        const splitAt = consonantsBetween > 1 ? curVowel + 2 : curVowel + 1;
+
+        parts.push(chars.slice(start, splitAt).join(''));
+        start = splitAt;
+      }
+
+      parts.push(chars.slice(start).join(''));
     }
 
-    parts.push(chars.slice(start).join(''));
     return parts.filter(p => p.length > 0);
   }
 }

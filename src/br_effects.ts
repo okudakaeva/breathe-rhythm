@@ -41,13 +41,15 @@ export class BREffects {
     snow: (...args) => BRParticleEffects.drawSnow(...args),
     sparks: (...args) => BRParticleEffects.drawSparks(...args),
     dandelion: (...args) => BRParticleEffects.drawDandelion(...args),
-    fire: (...args) => BRSyllabicEffects.drawFire(...args),
-    pulse: (...args) => BRSyllabicEffects.drawPulse(...args),
-    ripple: (...args) => BRSyllabicEffects.drawRipple(...args),
     echo: (...args) => BRSimpleEffects.drawEcho(...args),
     mirror: (...args) => BRSimpleEffects.drawMirror(...args),
     water: (...args) => BRSimpleEffects.drawWater(...args),
     grow: (...args) => BRSimpleEffects.drawGrow(...args),
+    fire: (...args) => BRSyllabicEffects.drawFire(...args),
+    pulse: (...args) => BRSyllabicEffects.drawPulse(...args),
+    ripple: (...args) => BRSyllabicEffects.drawRipple(...args),
+    sparkle: (...args) => BRSyllabicEffects.drawSparkle(...args),
+    orbit: (...args) => BRSyllabicEffects.drawOrbit(...args),
   };
 
   // ============================================================================
