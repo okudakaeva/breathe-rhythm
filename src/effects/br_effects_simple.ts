@@ -56,7 +56,7 @@ export class BRSimpleEffects {
         { start: 0.72, dur: 0.28, peakAlpha: 0.35, expand: 0.34 },
       ]
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
     if (!sprite) {
@@ -73,7 +73,7 @@ export class BRSimpleEffects {
 
     for (let i = 0; i < count; i++) {
       const ch = chars[i];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[i] ?? ctx.measureText(ch).width;
       const startThreshold = count > 1 ? (i / count) * 0.52 : 0;
       const localT = BREffectBase.clamp01((p - startThreshold) / (1 - startThreshold * 0.55));
 
@@ -132,7 +132,7 @@ export class BRSimpleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const chars = Array.from(segment.text);
     const count = Math.max(1, chars.length);
     const p = BREffectBase.clamp01(segment.progress);
@@ -142,7 +142,7 @@ export class BRSimpleEffects {
 
     for (let i = 0; i < count; i++) {
       const ch = chars[i];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[i] ?? ctx.measureText(ch).width;
       const startThreshold = count > 1 ? (i / count) * 0.65 : 0;
       const localT = BREffectBase.clamp01((p - startThreshold) / (1 - startThreshold * 0.65));
 
@@ -198,7 +198,7 @@ export class BRSimpleEffects {
       maxTrails: number = 6,
       maxDriftX: number = 30
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
     if (!sprite) {
@@ -246,7 +246,7 @@ export class BRSimpleEffects {
       minScale: number = 0.45,
       overshoot: number = 0.08
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const chars = Array.from(segment.text);
     const count = Math.max(1, chars.length);
     const p = BREffectBase.clamp01(segment.progress);
@@ -256,7 +256,7 @@ export class BRSimpleEffects {
 
     for (let i = 0; i < count; i++) {
       const ch = chars[i];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[i] ?? ctx.measureText(ch).width;
       const startThreshold = count > 1 ? (i / count) * 0.68 : 0;
       const localT = BREffectBase.clamp01((p - startThreshold) / (1 - startThreshold * 0.65));
 

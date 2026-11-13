@@ -13,7 +13,7 @@ export class BRParticleEffects {
       ctx: BRContext,
       config: BREngineConfig,
       dpr: number,
-      text: string,
+      segment: BRRenderSegment,
       startX: number,
       y: number,
       rgbVal: number,
@@ -23,13 +23,13 @@ export class BRParticleEffects {
       revealDur: number = 0.25,
       glowBlur: number = 14
   ): void {
-    const chars = Array.from(text);
+    const chars = Array.from(segment.text);
     const total = Math.max(1, chars.length);
     let cursorX = startX;
 
     for (let c = 0; c < chars.length; c++) {
       const ch = chars[c];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
       const charStart = total > 1 ? (c / total) * spreadRatio : 0;
       const charReveal = BREffectBase.clamp01((progress - charStart) / revealDur);
 
@@ -107,11 +107,11 @@ export class BRParticleEffects {
   public static createFlowParticles (
       ctx: BRContext,
       font: string,
-      text: string,
+      segment: BRRenderSegment,
       mode: Exclude<BRParticleEffectMode, 'wind'>
   ): BRFlowParticle[] {
     ctx.font = font;
-    const chars = Array.from(text);
+    const chars = Array.from(segment.text);
     const totalChars = Math.max(1, chars.length);
     const fontSize = BREffectBase.extractFontSize(font);
     const list: BRFlowParticle[] = [];
@@ -119,7 +119,7 @@ export class BRParticleEffects {
     let cursorX = 0;
     for (let c = 0; c < chars.length; c++) {
       const ch = chars[c];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
       const charProgressRatio = totalChars > 1 ? c / totalChars : 0;
 
       if (ch.trim().length > 0) {
@@ -211,7 +211,7 @@ export class BRParticleEffects {
   ): number {
     const chars = Array.from(segment.text);
     const total = Math.max(1, chars.length);
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
 
     if (segment.gusts && segment.gusts.length > 0) {
       ctx.save();
@@ -241,7 +241,7 @@ export class BRParticleEffects {
     let cursorX = startX;
     for (let idx = 0; idx < chars.length; idx++) {
       const ch = chars[idx];
-      const charWidth = ctx.measureText(ch).width;
+      const charWidth = segment.charWidths?.[idx] ?? ctx.measureText(ch).width;
       const startThreshold = (idx / total) * 0.35 + 0.12;
       const t = BREffectBase.clamp01((segment.progress - startThreshold) / (0.88 - startThreshold * 0.5));
       const ease = BREffectBase.easeOutCubic(t);
@@ -280,10 +280,10 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const p = BREffectBase.clamp01(segment.progress);
 
-    this.drawCharByChar(ctx, config, dpr, segment.text, startX, y, rgbVal, baseOpacity, p, 0.6, 0.25, 18);
+    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.6, 0.25, 18);
 
     const particles = segment.flowParticles;
     if (particles && particles.length > 0) {
@@ -324,15 +324,18 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const p = BREffectBase.clamp01(segment.progress);
-    this.drawCharByChar(ctx, config, dpr, segment.text, startX, y, rgbVal, baseOpacity, p, 0.55, 0.32, 12);
     const particles = segment.flowParticles;
+
+    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.55, 0.32, 12);
+
     if (particles && particles.length > 0) {
       ctx.save();
       ctx.fillStyle = config.activeTextColor;
       ctx.shadowColor = config.shadowColor;
       ctx.shadowBlur = 6 * dpr;
+
       for (let i = 0; i < particles.length; i++) {
         const pt = particles[i];
         const localT = (p - pt.delayRatio) / pt.lifeWindow;
@@ -362,10 +365,12 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const p = BREffectBase.clamp01(segment.progress);
-    this.drawCharByChar(ctx, config, dpr, segment.text, startX, y, rgbVal, baseOpacity, p, 0.65, 0.18, 20);
     const particles = segment.flowParticles;
+
+    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.65, 0.18, 20);
+
     if (particles && particles.length > 0) {
       ctx.save();
       ctx.strokeStyle = config.activeTextColor;
@@ -373,6 +378,7 @@ export class BRParticleEffects {
       ctx.shadowColor = config.shadowColor;
       ctx.shadowBlur = 8 * dpr;
       ctx.lineWidth = 1.1 * dpr;
+
       for (let i = 0; i < particles.length; i++) {
         const pt = particles[i];
         const localT = (p - pt.delayRatio) / pt.lifeWindow;
@@ -406,9 +412,9 @@ export class BRParticleEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const p = BREffectBase.clamp01(segment.progress);
-    this.drawCharByChar(ctx, config, dpr, segment.text, startX, y, rgbVal, baseOpacity, p, 0.4, 0.22, 12);
+    this.drawCharByChar(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, 0.4, 0.22, 12);
     const particles = segment.flowParticles;
 
     if (particles && particles.length > 0) {
@@ -416,6 +422,7 @@ export class BRParticleEffects {
       ctx.fillStyle = config.activeTextColor;
       ctx.shadowColor = config.shadowColor;
       ctx.shadowBlur = 7 * dpr;
+
       for (let i = 0; i < particles.length; i++) {
         const pt = particles[i];
         const localT = (p - pt.delayRatio) / pt.lifeWindow;

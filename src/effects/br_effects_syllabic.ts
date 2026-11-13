@@ -1,6 +1,6 @@
 import { BRContext, BREngineConfig } from '../types.ts';
 import { BRTags } from '../br_tags.ts';
-import { BREffectBase, BRRenderSegment, BRTextSprite } from './br_effects_base.ts';
+import { BREffectBase, BRRenderSegment } from './br_effects_base.ts';
 
 interface BRSyllableSliceContext {
   index: number;
@@ -79,7 +79,7 @@ export class BRSyllabicEffects {
   private static forEachSyllableSlice (
       ctx: BRContext,
       dpr: number,
-      sprite: BRTextSprite,
+      segment: BRRenderSegment,
       parts: string[],
       startX: number,
       y: number,
@@ -94,14 +94,15 @@ export class BRSyllabicEffects {
     let logicalOffset = 0;
 
     for (let i = 0; i < count; i++) {
-      const partW = ctx.measureText(parts[i]).width;
+      const partW = segment.syllableWidths?.[i] ?? ctx.measureText(parts[i]).width;
       const startThreshold = count > 1 ? (i / count) * spreadRatio : 0;
       const localT = BREffectBase.clamp01((progress - startThreshold) / (1 - startThreshold * tailCompress));
 
       if (localT > 0.005) {
-        const glyphStart = sprite.padX + logicalOffset;
+        const sprite = segment.sprite;
+        const glyphStart = sprite!.padX + logicalOffset;
         const sliceLeft = Math.max(0, glyphStart - bleed);
-        const sliceRight = Math.min(sprite.width, glyphStart + partW + bleed);
+        const sliceRight = Math.min(sprite!.width, glyphStart + partW + bleed);
         const sliceLogicalW = Math.max(1, sliceRight - sliceLeft);
 
         onSlice({
@@ -111,7 +112,7 @@ export class BRSyllabicEffects {
           srcW: Math.round(sliceLogicalW * dpr),
           sliceLogicalW,
           drawBaseX: cursorX - (glyphStart - sliceLeft),
-          drawBaseY: y - sprite.baselineY,
+          drawBaseY: y - sprite!.baselineY,
         });
       }
 
@@ -157,8 +158,8 @@ export class BRSyllabicEffects {
     let cursorX = startX;
     let activeX = startX;
     let activeW = 0;
-    let activeStep = 0;
-    let stepPhase = 0;
+    let activeStep;
+    let stepPhase;
     let isIgnited = false;
     let ignitionFlash = 0;
 
@@ -169,7 +170,7 @@ export class BRSyllabicEffects {
 
       for (let i = 0; i <= activeStep; i++) {
         const part = parts[i];
-        const partW = ctx.measureText(part).width;
+        const partW = segment.syllableWidths?.[i] ?? ctx.measureText(part).width;
 
         if (i === activeStep) {
           activeX = cursorX;
@@ -239,7 +240,7 @@ export class BRSyllabicEffects {
 
       const accentPart = parts[accentIdx];
       activeX = cursorX;
-      activeW = ctx.measureText(accentPart).width;
+      activeW = segment.syllableWidths?.[accentIdx] ?? ctx.measureText(accentPart).width;
 
       BREffectBase.drawStyledText(ctx, accentPart, {
         x: cursorX,
@@ -272,8 +273,9 @@ export class BRSyllabicEffects {
         activeStep = accentIdx + 1 + activePostStep;
 
         for (let k = 0; k <= activePostStep && k < postCount; k++) {
-          const part = parts[accentIdx + 1 + k];
-          const partW = ctx.measureText(part).width;
+          const idx = accentIdx + 1 + k;
+          const part = parts[idx];
+          const partW = segment.syllableWidths?.[idx] ?? ctx.measureText(part).width;
           if (k === activePostStep) {
             activeX = cursorX;
             activeW = partW;
@@ -310,7 +312,7 @@ export class BRSyllabicEffects {
       flameLiftY: number = 16,
       smolderAlpha: number = 0.42
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
     if (!sprite) {
@@ -320,7 +322,7 @@ export class BRSyllabicEffects {
     const parts = this.getSyllables(segment);
     const fontSize = BREffectBase.extractFontSize(config.font);
     ctx.save();
-    this.forEachSyllableSlice(ctx, dpr, sprite, parts, startX, y, p, 0.72, 0.75, (s) => {
+    this.forEachSyllableSlice(ctx, dpr, segment, parts, startX, y, p, 0.72, 0.75, (s) => {
       for (let w = 0; w < flameWaves; w++) {
         const waveDelay = w * 0.14;
         const waveT = BREffectBase.clamp01((s.localT - waveDelay) / (1 - waveDelay));
@@ -358,7 +360,7 @@ export class BRSyllabicEffects {
       pauseWeight: number = 1.4,
       accentWeight: number = 1.35
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const parts = this.getSyllables(segment);
     const p = BREffectBase.clamp01(segment.progress);
     if (parts.length === 1) {
@@ -387,7 +389,7 @@ export class BRSyllabicEffects {
       ringsCount: number = 3,
       waveWidth: number = 48
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const parts = this.getSyllables(segment);
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
@@ -396,7 +398,8 @@ export class BRSyllabicEffects {
     if (epicentreIdx !== null) {
       let accW = 0;
       for (let i = 0; i < epicentreIdx; i++) {
-        accW += ctx.measureText(parts[i]).width;
+        accW += segment.syllableWidths?.[i] ?? ctx.measureText(parts[i]).width;
+        epicentreX = accW + (segment.syllableWidths?.[epicentreIdx] ?? ctx.measureText(parts[epicentreIdx]).width) / 2;
       }
       epicentreX = accW + ctx.measureText(parts[epicentreIdx]).width / 2;
     }
@@ -430,9 +433,10 @@ export class BRSyllabicEffects {
     const chars = Array.from(segment.text);
     const baseReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(p / 0.35));
     let cursorX = startX;
+
     for (let c = 0; c < chars.length; c++) {
       const ch = chars[c];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
       const charCenterRel = (cursorX - startX) + chW / 2;
       const distForward = charCenterRel - epicentreX;
       let crestFactor = 0;
@@ -472,7 +476,7 @@ export class BRSyllabicEffects {
       baseOpacity: number,
       sparklesCount: number = 14
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const fontSize = BREffectBase.extractFontSize(config.font);
     ctx.save();
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
@@ -480,9 +484,12 @@ export class BRSyllabicEffects {
     const zoneW = state.isIgnited ? fullTextWidth : Math.max(12, state.activeW);
     const count = state.isIgnited ? sparklesCount * 2 : sparklesCount;
     const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * 1.4) : 1;
+
+    ctx.fillStyle = config.activeTextColor;
+    ctx.shadowColor = config.shadowColor;
+    ctx.shadowBlur = 12 * dpr;
+
     if (fadeOut > 0.01 && zoneW > 0) {
-      ctx.fillStyle = config.activeTextColor;
-      ctx.shadowColor = config.shadowColor;
       for (let i = 0; i < count; i++) {
         const seed = (state.activeStep + 1) * 73.13 + i * 19.37;
         const rx = Math.abs(Math.sin(seed * 1.7));
@@ -497,7 +504,6 @@ export class BRSyllabicEffects {
         const py = y - fontSize * (0.05 + ry * 0.72);
         const radius = (0.9 + (i % 3) * 0.45) * (0.7 + sparkleAlpha * 0.5);
         ctx.globalAlpha = baseOpacity * sparkleAlpha;
-        ctx.shadowBlur = (6 + sparkleAlpha * 10) * dpr;
         ctx.beginPath();
         ctx.arc(px, py, radius, 0, Math.PI * 2);
         ctx.fill();
@@ -518,16 +524,19 @@ export class BRSyllabicEffects {
       baseOpacity: number,
       firefliesCount: number = 7
   ): number {
-    const fullTextWidth = ctx.measureText(segment.text).width;
+    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const fontSize = BREffectBase.extractFontSize(config.font);
     ctx.save();
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
     const centerX = state.activeX + state.activeW / 2;
     const centerY = y - fontSize * 0.35;
     const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * 1.2) : 1;
+
+    ctx.fillStyle = config.activeTextColor;
+    ctx.shadowColor = config.shadowColor;
+    ctx.shadowBlur = 12 * dpr;
+
     if (fadeOut > 0.01 && state.activeW > 0) {
-      ctx.fillStyle = config.activeTextColor;
-      ctx.shadowColor = config.shadowColor;
       const easeIn = BREffectBase.easeOutCubic(state.stepPhase);
       const orbitRadiusX = (state.activeW * 0.5 + 12) * (1.15 - 0.25 * easeIn);
       const orbitRadiusY = (fontSize * 0.48 + 7) * (1.15 - 0.25 * easeIn);
@@ -546,7 +555,6 @@ export class BRSyllabicEffects {
           continue;
         }
         ctx.globalAlpha = baseOpacity * particleAlpha;
-        ctx.shadowBlur = (10 + 8 * glowPulse) * dpr;
         ctx.beginPath();
         ctx.arc(px, py, 1.35 + (i % 3) * 0.4, 0, Math.PI * 2);
         ctx.fill();
