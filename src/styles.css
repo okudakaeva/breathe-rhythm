@@ -158,7 +158,6 @@ ui-overlay[visible] > * {
 }
 
 .key-hints kbd {
-;
     font-family: inherit;
     font-size: 11px;
     letter-spacing: 0.15em;
