@@ -17,6 +17,7 @@ export class BRMaskEffects {
     ctx.save();
     ctx.fillStyle = config.activeTextColor;
     ctx.shadowColor = config.shadowColor;
+    ctx.shadowBlur = 8 * dpr;
 
     for (let i = 0; i < grains.length; i++) {
       const g = grains[i];
@@ -34,7 +35,6 @@ export class BRMaskEffects {
       const curY = y + g.startY + dy * state.ease + (dx / dist) * wave;
 
       ctx.globalAlpha = baseOpacity * state.alpha;
-      ctx.shadowBlur = state.blur * dpr;
       ctx.beginPath();
       ctx.arc(curX, curY, state.size, 0, Math.PI * 2);
       ctx.fill();
@@ -46,6 +46,31 @@ export class BRMaskEffects {
   // ============================================================================
   // ПУБЛИЧНЫЙ API
   // ============================================================================
+
+  public static buildConstellationLinks (
+      grains: BRMaskParticle[],
+      maxLinkDist: number = 22
+  ): Array<[number, number]> {
+    const links: Array<[number, number]> = [];
+    const maxDistSq = maxLinkDist * maxLinkDist;
+
+    for (let i = 0; i < grains.length; i++) {
+      const a = grains[i];
+      for (let j = i + 1; j < grains.length; j++) {
+        const b = grains[j];
+        const dx = a.targetX - b.targetX;
+        if (Math.abs(dx) > maxLinkDist) {
+          continue;
+        }
+        const dy = a.targetY - b.targetY;
+        if (dx * dx + dy * dy <= maxDistSq) {
+          links.push([i, j]);
+        }
+      }
+    }
+
+    return links;
+  }
 
   public static sampleTextMask (
       ctx: BRContext,
@@ -211,7 +236,7 @@ export class BRMaskEffects {
       baseOpacity: number,
       travelWindow: number = 0.36
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const grains = segment.grains;
     if (!grains || grains.length === 0) {
       return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
@@ -223,7 +248,7 @@ export class BRMaskEffects {
 
     for (let c = 0; c < chars.length; c++) {
       const ch = chars[c];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
       const charStart = (c / totalChars) * 0.55 + 0.22;
       const charReveal = BREffectBase.clamp01((segment.progress - charStart) / 0.28);
 
@@ -275,7 +300,7 @@ export class BRMaskEffects {
       baseOpacity: number,
       revealStart: number = 0.45
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const grains = segment.grains;
     if (!grains || grains.length === 0) {
       return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
@@ -322,7 +347,7 @@ export class BRMaskEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const grains = segment.grains;
     if (!grains || grains.length === 0) {
       return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
@@ -331,9 +356,10 @@ export class BRMaskEffects {
     const chars = Array.from(segment.text);
     const totalChars = Math.max(1, chars.length);
     let charCursorX = startX;
+
     for (let c = 0; c < chars.length; c++) {
       const ch = chars[c];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
       const charStart = (c / totalChars) * 0.65;
       const charReveal = BREffectBase.clamp01((p - charStart) / 0.25);
       if (charReveal > 0.01) {
@@ -382,7 +408,7 @@ export class BRMaskEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const grains = segment.grains;
     if (!grains || grains.length === 0) {
       return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
@@ -391,9 +417,10 @@ export class BRMaskEffects {
     const chars = Array.from(segment.text);
     const totalChars = Math.max(1, chars.length);
     let charCursorX = startX;
+
     for (let c = 0; c < chars.length; c++) {
       const ch = chars[c];
-      const chW = ctx.measureText(ch).width;
+      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
       const charStart = (c / totalChars) * 0.45 + 0.32;
       const charReveal = BREffectBase.clamp01((p - charStart) / 0.25);
       if (charReveal > 0.01) {
@@ -441,7 +468,7 @@ export class BRMaskEffects {
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const grains = segment.grains;
 
     if (!grains || grains.length === 0) {
@@ -492,7 +519,7 @@ export class BRMaskEffects {
       baseOpacity: number,
       maxLinkDist: number = 22
   ): number {
-    const textWidth = ctx.measureText(segment.text).width;
+    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
     const grains = segment.grains;
     if (!grains || grains.length === 0) {
       return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
@@ -509,11 +536,14 @@ export class BRMaskEffects {
         alpha: baseOpacity * easeText,
       });
     }
+
     const fadeOut = 1 - BREffectBase.clamp01((p - 0.75) / 0.25);
+
     if (fadeOut > 0.01) {
       const linePhase = BREffectBase.clamp01((p - 0.2) / 0.45);
+      const links = segment.constellationLinks ?? BRMaskEffects.buildConstellationLinks(grains, maxLinkDist);
 
-      if (linePhase > 0.01) {
+      if (linePhase > 0.01 && links.length > 0) {
         ctx.save();
         ctx.strokeStyle = config.activeTextColor;
         ctx.shadowColor = config.shadowColor;
@@ -521,27 +551,18 @@ export class BRMaskEffects {
         ctx.lineWidth = 0.8 * dpr;
         ctx.globalAlpha = baseOpacity * linePhase * fadeOut * 0.55;
         ctx.beginPath();
-        for (let i = 0; i < grains.length; i++) {
+
+        for (let k = 0; k < links.length; k++) {
+          const [i, j] = links[k];
           const a = grains[i];
-          if (p < a.delayRatio) {
+          const b = grains[j];
+          if (p < a.delayRatio || p < b.delayRatio) {
             continue;
           }
-          for (let j = i + 1; j < grains.length; j++) {
-            const b = grains[j];
-            if (p < b.delayRatio) {
-              continue;
-            }
-            const dx = a.targetX - b.targetX;
-            if (Math.abs(dx) > maxLinkDist) {
-              continue;
-            }
-            const dy = a.targetY - b.targetY;
-            if (dx * dx + dy * dy <= maxLinkDist * maxLinkDist) {
-              ctx.moveTo(startX + a.targetX, y + a.targetY);
-              ctx.lineTo(startX + b.targetX, y + b.targetY);
-            }
-          }
+          ctx.moveTo(startX + a.targetX, y + a.targetY);
+          ctx.lineTo(startX + b.targetX, y + b.targetY);
         }
+
         ctx.stroke();
         ctx.restore();
       }

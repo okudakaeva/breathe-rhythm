@@ -54,7 +54,12 @@ export interface BRRenderSegment {
   type?: BREffectType;
   progress: number;
   duration: number;
+  finishedAt?: number;
+  totalWidth?: number;
+  charWidths?: number[];
+  syllableWidths?: number[];
   grains?: BRMaskParticle[];
+  constellationLinks?: Array<[number, number]>;
   gusts?: BRWindGustParticle[];
   syllables?: string[];
   sprite?: BRTextSprite;
@@ -173,5 +178,16 @@ export class BREffectBase {
       width,
       height,
     };
+  }
+
+  public static disposeTextSprite (sprite?: BRTextSprite): void {
+    if (!sprite) {
+      return;
+    }
+
+    sprite.canvas.width = 0;
+    sprite.canvas.height = 0;
+    sprite.glowCanvas.width = 0;
+    sprite.glowCanvas.height = 0;
   }
 }

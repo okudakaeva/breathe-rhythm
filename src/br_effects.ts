@@ -70,9 +70,15 @@ export class BREffects {
       tag: string,
       text: string,
       duration: number,
-      param?: string
+      param?: string,
+      activeColor: string = '#ffffff'
   ): BRRenderSegment {
+    ctx.font = font;
     const type = BRTags.getType(tag);
+    const chars = Array.from(text);
+    const charWidths = chars.map(ch => ctx.measureText(ch).width);
+    const totalWidth = ctx.measureText(text).width;
+
     const segment: BRRenderSegment = {
       text,
       tag,
@@ -80,11 +86,16 @@ export class BREffects {
       param,
       progress: 0,
       duration,
+      totalWidth,
+      charWidths,
     };
 
     switch (type) {
       case 'mask': {
         segment.grains = BRMaskEffects.sampleTextMask(ctx, font, text, tag as BRTextMaskMode);
+        if (tag === 'constellation' && segment.grains.length > 0) {
+          segment.constellationLinks = BRMaskEffects.buildConstellationLinks(segment.grains);
+        }
         break;
       }
       case 'particles': {
@@ -94,24 +105,41 @@ export class BREffects {
           segment.flowParticles = BRParticleEffects.createFlowParticles(
               ctx,
               font,
-              text,
+              segment,
               tag as Exclude<BRParticleEffectMode, 'wind'>
           );
         }
         break;
       }
-      case 'syllabic':{
-        segment.sprite = BREffectBase.createTextSprite(ctx, font, text);
-        segment.syllables = BRTags.splitIntoSyllables(text);
+      case 'syllabic': {
+        segment.sprite = BREffectBase.createTextSprite(ctx, font, text, activeColor);
+        const syllables = BRTags.splitIntoSyllables(text);
+        segment.syllables = syllables;
+        segment.syllableWidths = syllables.map(s => ctx.measureText(s).width);
         break;
       }
       case 'simple': {
-        segment.sprite = BREffectBase.createTextSprite(ctx, font, text);
+        segment.sprite = BREffectBase.createTextSprite(ctx, font, text, activeColor);
         break;
       }
     }
 
     return segment;
+  }
+
+  public static disposeSegment (segment: BRRenderSegment): void {
+    if (segment.sprite) {
+      BREffectBase.disposeTextSprite(segment.sprite);
+      segment.sprite = undefined;
+    }
+
+    segment.grains = undefined;
+    segment.constellationLinks = undefined;
+    segment.gusts = undefined;
+    segment.flowParticles = undefined;
+    segment.syllables = undefined;
+    segment.charWidths = undefined;
+    segment.syllableWidths = undefined;
   }
 
   public static drawSegment (

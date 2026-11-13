@@ -1,5 +1,5 @@
 import { BRContext, BREngineConfig } from './types.ts';
-import { BREffects, BRRenderSegment } from './br_effects.ts';
+import { BREffectBase, BREffects, BRRenderSegment } from './br_effects.ts';
 
 export interface BRCtxMetrics {
   font: string;
@@ -16,6 +16,7 @@ export interface RenderLine {
   fadeFactor: number;
 }
 
+const SETTLE_DURATION = 200;
 export class BRRenderer {
   private readonly ctx: BRContext;
   private readonly canvas: HTMLCanvasElement;
@@ -147,6 +148,7 @@ export class BRRenderer {
 
   private drawSegmentedLine (line: RenderLine, x: number, y: number, rgbVal: number, opacity: number): void {
     let cursorX = x;
+    const now = performance.now();
 
     for (let s = 0; s < line.segments.length; s++) {
       const seg = line.segments[s];
@@ -156,10 +158,18 @@ export class BRRenderer {
         cursorX += BREffects.drawSegment(this.ctx, this.engineConfig, this.dpr, seg, cursorX, y, rgbVal, opacity);
       } else if (!seg.tag && isLastSegment && line.isTyping && !this.isFinished) {
         this.drawActiveWord(seg.text, cursorX, y, rgbVal, opacity);
-        cursorX += this.ctx.measureText(seg.text).width;
+        seg.totalWidth ??= this.ctx.measureText(seg.text).width;
+        cursorX += seg.totalWidth;
       } else {
-        this.drawStaticLine(seg.text, cursorX, y, rgbVal, opacity, 0);
-        cursorX += this.ctx.measureText(seg.text).width;
+        let segRgb = rgbVal;
+        if (seg.tag && seg.finishedAt !== undefined) {
+          const settleT = Math.min(1, (now - seg.finishedAt) / SETTLE_DURATION);
+          segRgb = Math.round(255 + (rgbVal - 255) * settleT);
+        }
+
+        this.drawStaticLine(seg.text, cursorX, y, segRgb, opacity, 0);
+        seg.totalWidth ??= this.ctx.measureText(seg.text).width;
+        cursorX += seg.totalWidth;
       }
     }
   }
@@ -177,14 +187,19 @@ export class BRRenderer {
   // ПУБЛИЧНЫЙ API
   // ============================================================================
 
-  public get hasParticles(): boolean {
+  public get hasParticles (): boolean {
     return BREffects.hasParticles;
   }
+
   public get hasActiveFading (): boolean {
+    const now = performance.now();
+
     return this.lines.some((line, i) =>
         (this.isFinished && line.fadeFactor < 0.85) ||
         (!this.isFinished && i !== this.activeLineIdx && line.fadeFactor > 0) ||
-        line.segments.some(seg => seg.progress < 1)
+        line.segments.some(
+            seg => seg.progress < 1 || (seg.finishedAt !== undefined && now - seg.finishedAt < SETTLE_DURATION)
+        )
     );
   }
 
@@ -220,6 +235,10 @@ export class BRRenderer {
         for (const seg of line.segments) {
           if (seg.progress < 1) {
             seg.progress = Math.min(1, seg.progress + dt / seg.duration);
+            if (seg.progress >= 1) {
+              seg.finishedAt = now;
+              BREffects.disposeSegment(seg);
+            }
           }
         }
       }
@@ -243,6 +262,7 @@ export class BRRenderer {
       }
     }
   }
+
   public updateResponsiveMetrics (): void {
     if (!this.canvas || !this.ctx) {
       return;
@@ -254,8 +274,9 @@ export class BRRenderer {
     const baseFontSize = fontMatch ? parseFloat(fontMatch[1]) : 28;
     const fontFamily = fontMatch ? fontMatch[2] : '"Courier New", monospace';
     const paddingX = Math.max(20, Math.round(this.engineConfig.paddingX * scale));
-    let fontSize = Math.max(14, Math.round(baseFontSize * scale));
     const maxWidth = Math.max(100, width - paddingX * 2);
+    let fontSize = Math.max(14, Math.round(baseFontSize * scale));
+
     if (this.lines.length > 0) {
       this.ctx.font = `${ fontSize }px ${ fontFamily }`;
       const longestLineWidth = Math.max(
@@ -273,6 +294,23 @@ export class BRRenderer {
       lineHeight: Math.max(24, Math.round(this.engineConfig.lineHeight * fontRatio)),
       initialY: Math.max(36, Math.round(this.engineConfig.initialY * scale)),
     };
+
+    this.lines.forEach(line => {
+      line.segments.forEach(seg => {
+        seg.totalWidth = undefined;
+        seg.charWidths = undefined;
+        seg.syllableWidths = undefined;
+        if (seg.sprite && seg.progress < 1) {
+          BREffectBase.disposeTextSprite(seg.sprite);
+          seg.sprite = BREffectBase.createTextSprite(
+              this.ctx,
+              this.metrics.font,
+              seg.text,
+              this.engineConfig.activeTextColor,
+          );
+        }
+      });
+    });
   }
 
   public setRunning (running: boolean): void {
@@ -295,6 +333,7 @@ export class BRRenderer {
     const lastSeg = line.segments[line.segments.length - 1];
     if (lastSeg && !lastSeg.tag) {
       lastSeg.text += char;
+      lastSeg.totalWidth = undefined;
     } else {
       line.segments.push({ text: char, progress: 1, duration: 0 });
     }
@@ -310,7 +349,7 @@ export class BRRenderer {
     line.rendered += text;
     line.isTyping = true;
 
-    const segment = BREffects.createSegment(this.ctx, this.metrics.font, tag, text, duration, param);
+    const segment = BREffects.createSegment(this.ctx, this.metrics.font, tag, text, duration, param, this.engineConfig.activeTextColor);
     line.segments.push(segment);
   }
 
@@ -322,7 +361,11 @@ export class BRRenderer {
 
     line.isTyping = false;
     line.segments.forEach(seg => {
+      if (seg.progress < 1) {
+        seg.finishedAt = performance.now();
+      }
       seg.progress = 1;
+      BREffects.disposeSegment(seg);
     });
   }
 
@@ -332,7 +375,16 @@ export class BRRenderer {
       line.isTyping = false;
       line.segments.forEach(seg => {
         seg.progress = 1;
+        BREffects.disposeSegment(seg);
       });
     });
+  }
+
+  public dispose (): void {
+    this.lines.forEach(line => {
+      line.segments.forEach(seg => BREffects.disposeSegment(seg));
+      line.segments.length = 0;
+    });
+    BREffects.reset();
   }
 }

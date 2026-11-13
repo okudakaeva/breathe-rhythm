@@ -20,7 +20,6 @@ export type BRSceneCommand =
     | { type: 'line-end'; lineIndex: number; delay: number }
     | { type: 'finish'; delay: number };
 
-
 const BR_ENGINE_CONFIG: BREngineConfig = {
   bgColor: '#0b0b0b',
   textColor: 140,
@@ -46,7 +45,6 @@ export class BreatheRhythmEngine extends HTMLElement {
   private pendingDelay: number = 0;
   private pendingCommandType: BRSceneCommand['type'] | null = null;
   private rafId: number | null = null;
-  private boundResizeCanvas = this.resizeCanvas.bind(this);
 
   private tokens: BRToken[][] = [];
   private rawText: BRPoemPackage['lines'] = [];
@@ -145,7 +143,13 @@ export class BreatheRhythmEngine extends HTMLElement {
     this.canvas.height = Math.round(window.innerHeight * dpr);
   }
 
-  private resizeCanvas (): void {
+  private boundVisibilityChange = () => {
+    if (document.hidden && this.isRunning) {
+      this.pause();
+    }
+  };
+
+  private boundResizeCanvas = () => {
     this.applyCanvasSize();
     this.renderer?.updateResponsiveMetrics();
     this.renderer?.drawFrame();
@@ -353,16 +357,19 @@ export class BreatheRhythmEngine extends HTMLElement {
         this.abortController = null;
       }
 
-      this.startRenderLoop();
+      if (this.phase !== 'idle') {
+        this.startRenderLoop();
+      }
     }
   }
 
   public init (): void {
-    if (this.abortController) {
+      if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
     this.stopRenderLoop();
+    this.renderer?.dispose();
     this.scene = null;
     this.pendingDelay = 0;
     this.pendingCommandType = null;
@@ -391,6 +398,7 @@ export class BreatheRhythmEngine extends HTMLElement {
     this.createCanvas();
     this.applyCanvasSize();
     window.addEventListener('resize', this.boundResizeCanvas);
+    document.addEventListener('visibilitychange', this.boundVisibilityChange)
 
     await this.loadData((response: BRPoemPackage[]) => {
       if (!this.isConnected) {
@@ -408,7 +416,9 @@ export class BreatheRhythmEngine extends HTMLElement {
   public disconnectedCallback (): void {
     this.abortController?.abort();
     this.stopRenderLoop();
+    this.renderer?.dispose();
     window.removeEventListener('resize', this.boundResizeCanvas);
+    document.removeEventListener('visibilitychange', this.boundVisibilityChange);
   }
 }
 
