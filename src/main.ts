@@ -13,53 +13,47 @@ const btnStart = document.getElementById('btnStart') as UIButton;
 const btnReset = document.getElementById('btnReset') as UIButton;
 const btnResume = document.getElementById('btnResume') as UIButton;
 
-if (!engine || !controls || !pauseOverlay || !btnStart || !btnReset || !btnResume) {
+const setButtonIcon = (cmp: UIButton, iconName: UIIconName) => {
+  const icon = cmp.querySelector('ui-icon');
+  if (icon) {
+    icon.setAttribute('name', iconName);
+  }
+};
+const startAction = async (_btn: HTMLButtonElement, inst: BreatheRhythmEngine) => {
+  if (inst?.isReady) {
+    await inst.start();
+  }
+};
+const resetAction = (_btn: HTMLButtonElement, inst: BreatheRhythmEngine) => inst?.init();
+const syncReadyState = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
+  button.disabled = !instance || !instance.isReady;
+};
+const required = [engine, controls, startOverlay, pauseOverlay, btnInitStart, btnStart, btnReset, btnResume];
+
+if (required.some(el => !el)) {
   console.error('[Ошибка] Не удалось найти элементы управления в DOM. Проверьте ID в HTML.');
 } else {
-  const setButtonIcon = (cmp: UIButton, iconName: UIIconName) => {
-    const icon = cmp.querySelector('ui-icon');
-    if (icon) {
-      icon.setAttribute('name', iconName);
-    }
-  };
-
-  controls.onUpdateHandler = (toolbar: HTMLElement, instance: BreatheRhythmEngine) => {
+  controls.onUpdateHandler = (_toolbar: HTMLElement, instance: BreatheRhythmEngine) => {
     const isVisible = Boolean(instance && (instance.isRunning || instance.isFinished));
-    toolbar.toggleAttribute('hidden', !isVisible);
+    _toolbar.toggleAttribute('hidden', !isVisible);
   };
-  controls.engine = engine;
 
   startOverlay.onUpdateHandler = (_overlay: HTMLElement, instance: BreatheRhythmEngine) => {
     return Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
   };
-  startOverlay.engine = engine;
 
   pauseOverlay.onUpdateHandler = (_overlay: HTMLElement, instance: BreatheRhythmEngine) => {
     return Boolean(instance && instance.isPaused);
   };
-  pauseOverlay.engine = engine;
 
-  btnInitStart.onClickHandler = async (_button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
-    if (instance && instance.isReady) {
-      await instance.start();
-    }
-  };
-  btnInitStart.onUpdateHandler = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
+  btnInitStart.onClickHandler = startAction;
+  btnInitStart.onUpdateHandler = (_button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
     setButtonIcon(btnInitStart, !instance || !instance.isReady ? 'loader' : 'play');
-    button.disabled = !instance || !instance.isReady;
+    _button.disabled = !instance || !instance.isReady;
   };
-  btnInitStart.engine = engine;
 
-  btnResume.onClickHandler = async (_button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
-    if (instance && instance.isPaused) {
-      await instance.start();
-    }
-  };
-  btnResume.onUpdateHandler = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
-    setButtonIcon(btnResume, 'play');
-    button.disabled = !instance || !instance.isReady;
-  };
-  btnResume.engine = engine;
+  btnResume.onClickHandler = startAction;
+  btnResume.onUpdateHandler = syncReadyState;
 
   btnStart.onClickHandler = async (_button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
     if (!instance) {
@@ -76,11 +70,11 @@ if (!engine || !controls || !pauseOverlay || !btnStart || !btnReset || !btnResum
     if (!instance || !instance.isReady) {
       setButtonIcon(btnStart, 'loader');
       btnStart.setAttribute('label', 'Загрузка');
-      btnStart.setAttribute('disabled', '');
+      _button.disabled = true;
       return;
     }
 
-    btnStart.removeAttribute('disabled');
+    _button.disabled = false;
     if (instance.isRunning) {
       btnStart.setAttribute('label', 'Пауза');
       setButtonIcon(btnStart, 'pause');
@@ -89,16 +83,40 @@ if (!engine || !controls || !pauseOverlay || !btnStart || !btnReset || !btnResum
       setButtonIcon(btnStart, 'play');
     }
   };
-  btnStart.engine = engine;
 
-  btnReset.onClickHandler = (_button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
-    if (instance) {
-      instance.init();
+  btnReset.onClickHandler = resetAction;
+  btnReset.onUpdateHandler = syncReadyState;
+
+  document.querySelectorAll<HTMLElement & { engine: BreatheRhythmEngine }>('[changeevent]')
+      .forEach(el => {
+        el.engine = engine;
+      });
+
+  document.addEventListener('keydown', async (e: KeyboardEvent) => {
+    if (e.repeat || !engine.isReady || e.ctrlKey || e.metaKey || e.altKey) {
+      return;
     }
-  };
-  btnReset.onUpdateHandler = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
-    setButtonIcon(btnReset, 'reset');
-    button.disabled = !instance || !instance.isReady;
-  };
-  btnReset.engine = engine;
+
+    const target = e.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      return;
+    }
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (engine.isRunning) {
+        engine.pause();
+      } else {
+        await engine.start();
+      }
+    } else if (e.code === 'KeyR') {
+      if (engine.isRunning || engine.isPaused || engine.isFinished) {
+        e.preventDefault();
+        engine.init();
+      }
+    } else if (e.code === 'Escape' && engine.isPaused) {
+      e.preventDefault();
+      await engine.start();
+    }
+  });
 }
