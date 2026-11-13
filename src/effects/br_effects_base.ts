@@ -1,4 +1,4 @@
-import { BRColor, BRContext, BREffectType } from '../types.ts';
+import { BRColor, BRContext, BREffectType, BREngineConfig } from '../types.ts';
 export interface BRFlowParticle {
   x: number;
   y: number;
@@ -189,5 +189,114 @@ export class BREffectBase {
     sprite.canvas.height = 0;
     sprite.glowCanvas.width = 0;
     sprite.glowCanvas.height = 0;
+  }
+
+  public static getSegmentWidth (ctx: BRContext, segment: BRRenderSegment): number {
+    segment.totalWidth ??= ctx.measureText(segment.text).width;
+    return segment.totalWidth;
+  }
+
+  public static fadeOutWindow (progress: number, start: number): number {
+    return 1 - this.clamp01((progress - start) / (1 - start));
+  }
+
+  public static drawTextReveal (
+      ctx: BRContext,
+      config: BREngineConfig,
+      dpr: number,
+      text: string,
+      startX: number,
+      y: number,
+      rgbVal: number,
+      baseOpacity: number,
+      progress: number,
+      revealStart: number,
+      useCubic: boolean = true,
+      glowBlur: number = 0
+  ): void {
+    const reveal = this.clamp01((progress - revealStart) / (1 - revealStart));
+    if (reveal <= 0.01) {
+      return;
+    }
+
+    const ease = useCubic ? this.easeOutCubic(reveal) : this.easeOutQuad(reveal);
+    this.drawStyledText(ctx, text, {
+      x: startX,
+      y,
+      rgbVal,
+      alpha: baseOpacity * ease,
+      shadowColor: glowBlur > 0 ? config.shadowColor : undefined,
+      shadowBlur: glowBlur > 0 ? (1 - ease) * glowBlur * dpr : 0,
+    });
+  }
+
+  public static drawCharReveal (
+      ctx: BRContext,
+      config: BREngineConfig,
+      dpr: number,
+      segment: BRRenderSegment,
+      startX: number,
+      y: number,
+      rgbVal: number,
+      baseOpacity: number,
+      progress: number,
+      opts: {
+        spreadRatio?: number;
+        startOffset?: number;
+        revealDur?: number;
+        glowBlur?: number;
+        alphaMod?: (ease: number) => number;
+      } = {}
+  ): void {
+    const spreadRatio = opts.spreadRatio ?? 0.65;
+    const startOffset = opts.startOffset ?? 0;
+    const revealDur = opts.revealDur ?? 0.25;
+    const glowBlur = opts.glowBlur ?? 0;
+
+    const chars = Array.from(segment.text);
+    const total = Math.max(1, chars.length);
+    let cursorX = startX;
+
+    for (let c = 0; c < chars.length; c++) {
+      const ch = chars[c];
+      const chW = segment.charWidths?.[c] ?? ctx.measureText(ch).width;
+      const charStart = (total > 1 ? (c / total) * spreadRatio : 0) + startOffset;
+      const charReveal = this.clamp01((progress - charStart) / revealDur);
+
+      if (charReveal > 0.01) {
+        const ease = this.easeOutQuad(charReveal);
+        const alpha = opts.alphaMod ? opts.alphaMod(ease) : ease;
+        this.drawStyledText(ctx, ch, {
+          x: cursorX,
+          y,
+          rgbVal,
+          alpha: baseOpacity * alpha,
+          shadowColor: glowBlur > 0 ? config.shadowColor : undefined,
+          shadowBlur: glowBlur > 0 ? (1 - ease) * glowBlur * dpr : 0,
+        });
+      }
+
+      cursorX += chW;
+    }
+  }
+
+  public static drawMaskOrFallback (
+      ctx: BRContext,
+      segment: BRRenderSegment,
+      startX: number,
+      y: number,
+      rgbVal: number,
+      baseOpacity: number,
+      render: (grains: BRMaskParticle[], textWidth: number) => void
+  ): number {
+    const textWidth = this.getSegmentWidth(ctx, segment);
+    const grains = segment.grains;
+
+    if (!grains || grains.length === 0) {
+      return this.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
+    }
+
+    render(grains, textWidth);
+    return textWidth;
   }
 }

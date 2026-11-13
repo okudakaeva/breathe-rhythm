@@ -312,7 +312,7 @@ export class BRSyllabicEffects {
       flameLiftY: number = 16,
       smolderAlpha: number = 0.42
   ): number {
-    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
     if (!sprite) {
@@ -360,7 +360,7 @@ export class BRSyllabicEffects {
       pauseWeight: number = 1.4,
       accentWeight: number = 1.35
   ): number {
-    const textWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const parts = this.getSyllables(segment);
     const p = BREffectBase.clamp01(segment.progress);
     if (parts.length === 1) {
@@ -389,20 +389,21 @@ export class BRSyllabicEffects {
       ringsCount: number = 3,
       waveWidth: number = 48
   ): number {
-    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const parts = this.getSyllables(segment);
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
     const epicentreIdx = this.parseSyllableParam(segment.param, parts.length);
     let epicentreX = 0;
+
     if (epicentreIdx !== null) {
       let accW = 0;
       for (let i = 0; i < epicentreIdx; i++) {
         accW += segment.syllableWidths?.[i] ?? ctx.measureText(parts[i]).width;
-        epicentreX = accW + (segment.syllableWidths?.[epicentreIdx] ?? ctx.measureText(parts[epicentreIdx]).width) / 2;
       }
-      epicentreX = accW + ctx.measureText(parts[epicentreIdx]).width / 2;
+      epicentreX = accW + (segment.syllableWidths?.[epicentreIdx] ?? ctx.measureText(parts[epicentreIdx]).width) / 2;
     }
+
     const travelDistance = Math.max(fullTextWidth - epicentreX, 40) + 30;
     const waveRadius = p * travelDistance * 1.25;
     ctx.save();
@@ -476,7 +477,7 @@ export class BRSyllabicEffects {
       baseOpacity: number,
       sparklesCount: number = 14
   ): number {
-    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const fontSize = BREffectBase.extractFontSize(config.font);
     ctx.save();
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
@@ -524,7 +525,7 @@ export class BRSyllabicEffects {
       baseOpacity: number,
       firefliesCount: number = 7
   ): number {
-    const fullTextWidth = segment.totalWidth ?? ctx.measureText(segment.text).width;
+    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const fontSize = BREffectBase.extractFontSize(config.font);
     ctx.save();
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
