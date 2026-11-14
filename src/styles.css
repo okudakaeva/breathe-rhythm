@@ -1,9 +1,33 @@
+:root {
+    --bgr: #050505;
+    --overlay: #0b0b0b;
+    --base: #f0f0f0;
+    --neon: #00ffcc;
+    --white: #ffffff;
+    --muted: rgb(from var(--white) r g b /0.55);
+    --backdrop: blur(6px);
+
+    --font-mono: 'Courier New', Courier, monospace;
+    --z-toolbar: 10;
+    --z-overlay: 20;
+    --z-drawer: 30;
+
+    --transition-fast: 0.3s ease;
+    --transition-smooth: 0.45s ease;
+    --transition-curve: 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+
+    --btn-size: 50px;
+    --btn-size-lg: 92px;
+    --icon-size: 24px;
+    --icon-size-lg: 38px;
+}
+
 body {
     margin: 0;
     padding: 0;
-    background-color: #0b0b0b;
-    color: #f0f0f0;
-    font-family: 'Courier New', Courier, monospace;
+    background-color: var(--bgr);
+    color: var(--base);
+    font-family: var(--font-mono);
     overflow: hidden;
     display: flex;
     justify-content: center;
@@ -13,12 +37,12 @@ body {
 
 ui-button::part(ui-button) {
     background: transparent;
-    color: #00ffcc;
-    border: 1px solid #00ffcc;
+    color: var(--neon);
+    border: 1px solid var(--neon);
     cursor: pointer;
-    transition: all 0.3s ease;
-    width: 50px;
-    height: 50px;
+    transition: all var(--transition-fast);
+    width: var(--btn-size);
+    height: var(--btn-size);
     padding: 0;
     display: inline-flex;
     justify-content: center;
@@ -26,9 +50,9 @@ ui-button::part(ui-button) {
 }
 
 ui-button::part(ui-button):hover:not(:disabled) {
-    background: #00ffcc;
-    color: #050505;
-    box-shadow: 0 0 15px #00ffcc;
+    background: var(--neon);
+    color: var(--bgr);
+    box-shadow: 0 0 15px var(--neon);
 }
 
 ui-button::part(ui-button):disabled {
@@ -42,25 +66,29 @@ ui-button::part(ui-button):disabled {
     }
 }
 
+ui-button ui-icon svg {
+    width: var(--icon-size);
+    height: var(--icon-size);
+}
 ui-button ui-icon[name="loader"] svg {
     animation: spin 1s linear infinite;
 }
 
 ui-button.btn-play-large::part(ui-button) {
-    width: 92px;
-    height: 92px;
-    border-width: 1.5px;
-    box-shadow: 0 0 18px rgba(0, 255, 204, 0.2), inset 0 0 12px rgba(0, 255, 204, 0.12);
+    width: var(--btn-size-lg);
+    height: var(--btn-size-lg);
+    border-width: 2px;
+    box-shadow: 0 0 18px rgb(from var(--neon) r g b / 0.2), inset 0 0 12px rgb(from var(--neon) r g b / 0.12);
 }
 
 ui-button.btn-play-large::part(ui-button):hover:not(:disabled) {
-    box-shadow: 0 0 28px #00ffcc;
+    box-shadow: 0 0 28px var(--neon);
     transform: scale(1.05);
 }
 
 ui-button.btn-play-large ui-icon svg {
-    width: 38px;
-    height: 38px;
+    width: var(--icon-size-lg);
+    height: var(--icon-size-lg);
 }
 
 ui-toolbar {
@@ -68,10 +96,10 @@ ui-toolbar {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10;
+    z-index: var(--z-toolbar);
     display: flex;
     gap: 15px;
-    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast), transform var(--transition-fast);
 }
 
 ui-toolbar[hidden] {
@@ -84,19 +112,19 @@ ui-toolbar[hidden] {
 ui-overlay {
     position: fixed;
     inset: 0;
-    z-index: 20;
+    z-index: var(--z-overlay);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 32px;
-    background: rgba(11, 11, 11, 0.58);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    background: rgb(from var(--overlay) r g b / 0.58);
+    backdrop-filter: var(--backdrop);
+    -webkit-backdrop-filter: var(--backdrop);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.45s ease, visibility 0.45s ease;
+    transition: opacity var(--transition-smooth), visibility var(--transition-smooth);
 }
 
 ui-overlay[visible] {
@@ -107,7 +135,7 @@ ui-overlay[visible] {
 
 ui-overlay > * {
     transform: translateY(8px);
-    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform var(--transition-curve);
 }
 
 ui-overlay[visible] > * {
@@ -119,17 +147,23 @@ ui-toolbar:not(:defined) {
     transition: none !important;
 }
 
-.pause-title {
+.screen-title{
     margin: 0;
     text-align: center;
     font-size: clamp(28px, 5vw, 44px);
     font-weight: 400;
     letter-spacing: 0.35em;
     padding-left: 0.35em;
-    color: #00ffcc;
+    color: var(--neon);
     text-transform: uppercase;
-    text-shadow: 0 0 14px rgba(0, 255, 204, 0.65);
+    text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.65);
     user-select: none;
+}
+
+.screen-subtitle {
+    margin: 0;
+    color: var(--muted);
+    font-size: 18px;
 }
 
 .key-hints {
@@ -140,7 +174,7 @@ ui-toolbar:not(:defined) {
     margin-top: 58px;
     font-size: 13px;
     letter-spacing: 0.14em;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--muted);
     user-select: none;
 }
 
@@ -160,11 +194,11 @@ ui-toolbar:not(:defined) {
     font-family: inherit;
     font-size: 11px;
     letter-spacing: 0.15em;
-    color: #00ffcc;
+    color: var(--neon);
     padding: 4px 9px;
-    border: 1px solid rgba(0, 255, 204, 0.45);
-    background: rgba(0, 255, 204, 0.05);
-    box-shadow: 0 0 10px rgba(0, 255, 204, 0.12);
+    border: 1px solid rgb(from var(--neon) r g b / 0.45);
+    background: rgb(from var(--neon) r g b / 0.05);
+    box-shadow: 0 0 10px rgb(from var(--neon) r g b / 0.12);
 }
 
 
