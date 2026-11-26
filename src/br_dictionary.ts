@@ -32,7 +32,7 @@ export interface BRDictionary {
 
 const cache = new Map<string, unknown>([
   ['APP_TITLE', '...BREATHE\u00A0\u00A0\n\u00A0\u00A0RHYTHM...'],
-  ['APP_SUBTITLE', '...в ритме дыхания...'],
+  ['APP_SUBTITLE', '...В ритме дыхания...'],
   ['PAUSE_TITLE', '...ПАУЗА...'],
   ['BTN_START', 'Старт'],
   ['BTN_PAUSE', 'Пауза'],
@@ -110,7 +110,7 @@ export function applyDict (root: ParentNode = document): void {
     }
 
     const val = String(brDict[key]);
-    if (el.tagName === 'UI-BUTTON') {
+    if (el.tagName === 'UI-BUTTON' || el.tagName === 'UI-LOGO' || el.tagName === 'UI-SUBTITLE') {
       el.setAttribute('label', val);
     } else {
       el.textContent = val;

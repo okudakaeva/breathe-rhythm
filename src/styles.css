@@ -1,4 +1,5 @@
 :root {
+    --i: 0;
     --bgr: #050505;
     --overlay: #0b0b0b;
     --base: #f0f0f0;
@@ -232,5 +233,159 @@ ui-toolbar:not(:defined) {
     background: rgb(from var(--neon) r g b / 0.05);
     box-shadow: 0 0 10px rgb(from var(--neon) r g b / 0.12);
 }
+
+ui-logo {
+    display: block;
+    text-align: center;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 400;
+    letter-spacing: 0.35em;
+    padding-left: 0.35em;
+    color: var(--neon, #00ffcc);
+    text-transform: uppercase;
+    text-shadow: 0 0 14px rgb(from var(--neon, #00ffcc) r g b / 0.65);
+    user-select: none;
+}
+ui-logo .row {
+    display: block;
+}
+
+ui-logo .dots-left,
+ui-logo .dots-right,
+ui-logo .char {
+    display: inline-block;
+}
+
+@keyframes dotsSlideLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-120px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes dotsSlideRight {
+    from {
+        opacity: 0;
+        transform: translateX(120px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes charTypeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+ui-logo:not(.no-intro) .dots-left {
+    animation: dotsSlideLeft 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+ui-logo:not(.no-intro) .dots-right {
+    animation: dotsSlideRight 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+ui-logo:not(.no-intro) .char {
+    animation: charTypeIn 0.3s ease calc(0.35s + var(--i) * 70ms) both;
+}
+
+@keyframes bootFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+ui-overlay#startOverlay.boot-anim > * {
+    transition: none;
+}
+
+
+ui-overlay#startOverlay.boot-anim #btnInitStart,
+ui-overlay#startOverlay.boot-anim .key-hints {
+    animation: bootFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.85s both;
+}
+
+ui-subtitle .subtitle {
+    margin: 0;
+    color: var(--muted);
+    font-size: 18px;
+}
+
+ui-subtitle .sub-dots-left,
+ui-subtitle .sub-dots-right,
+ui-subtitle .sub-text {
+    display: inline-block;
+}
+
+@keyframes subtitleDockLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-120px);
+    }
+    55% {
+        opacity: 1;
+        transform: translateX(35px);
+    }
+    80% {
+        opacity: 1;
+        transform: translateX(-35px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes subDotsOutLeft {
+    from {
+        opacity: 0;
+        transform: translateX(22px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes subDotsOutRight {
+    from {
+        opacity: 0;
+        transform: translateX(-22px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+ui-overlay#startOverlay.boot-anim ui-subtitle {
+    animation: subtitleDockLeft 0.9s ease-in-out 1.3s both;
+}
+
+ui-overlay#startOverlay.boot-anim ui-subtitle .sub-dots-left {
+    animation: subDotsOutLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) 2.3s both;
+}
+
+ui-overlay#startOverlay.boot-anim ui-subtitle .sub-dots-right {
+    animation: subDotsOutRight 0.8s cubic-bezier(0.22, 1, 0.36, 1) 2.3s both;
+}
+
+
+
 
 

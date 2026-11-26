@@ -34,6 +34,8 @@
     <script src="./ui/ui_toolbar.js" type="module"></script>
     <script src="./ui/ui_button.js" type="module"></script>
     <script src="./ui/ui_icon.js" type="module"></script>
+    <script src="./ui/ui_logo.js" type="module"></script>
+    <script src="./ui/ui_subtitle.js" type="module"></script>
     <script src="./breathe_rhythm_engine.js" type="module"></script>
     <script src="./main.js" type="module"></script>
 </head>
@@ -57,9 +59,9 @@
         </ui-button>
     </ui-toolbar>
 
-    <ui-overlay id="startOverlay" visible delay="0">
-        <h1 class="screen-title" data-dict="APP_TITLE"></h1>
-        <p class="screen-subtitle" data-dict="APP_SUBTITLE"></p>
+    <ui-overlay id="startOverlay" class="boot-anim" visible delay="0">
+        <ui-logo data-dict="APP_TITLE"></ui-logo>
+        <ui-subtitle data-dict="APP_SUBTITLE"></ui-subtitle>
         <ui-button id="btnInitStart" class="btn-play-large" data-dict="BTN_START">
             <ui-icon name="play" slot="icon"></ui-icon>
         </ui-button>

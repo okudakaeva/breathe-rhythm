@@ -7,6 +7,7 @@ import { UIToolbar } from './ui/ui_toolbar.ts';
 
 applyDict();
 
+let hasStartedOnce = false;
 const engine = document.getElementById('engine') as BreatheRhythmEngine;
 const controls = document.getElementById('controls') as UIToolbar;
 const startOverlay = document.getElementById('startOverlay') as UIOverlay;
@@ -15,6 +16,7 @@ const btnInitStart = document.getElementById('btnInitStart') as UIButton;
 const btnStart = document.getElementById('btnStart') as UIButton;
 const btnReset = document.getElementById('btnReset') as UIButton;
 const btnResume = document.getElementById('btnResume') as UIButton;
+const required = [engine, controls, startOverlay, pauseOverlay, btnInitStart, btnStart, btnReset, btnResume];
 
 const setButtonIcon = (cmp: UIButton, iconName: UIIconName) => {
   const icon = cmp.querySelector('ui-icon');
@@ -31,8 +33,6 @@ const resetAction = (_btn: HTMLButtonElement, inst: BreatheRhythmEngine) => inst
 const syncReadyState = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
   button.disabled = !instance || !instance.isReady;
 };
-const required = [engine, controls, startOverlay, pauseOverlay, btnInitStart, btnStart, btnReset, btnResume];
-let isInitialBoot = true;
 
 if (required.some(el => !el)) {
   console.error('[Ошибка] Не удалось найти элементы управления в DOM. Проверьте ID в HTML.');
@@ -43,11 +43,18 @@ if (required.some(el => !el)) {
   };
 
   startOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine) => {
+    if (instance?.isRunning) {
+      hasStartedOnce = true;
+    }
+
     const shouldShow = Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
 
     if (shouldShow) {
-      _overlay.delay = isInitialBoot ? 0 : 170;
-      isInitialBoot = false;
+      if (hasStartedOnce) {
+        _overlay.classList.remove('boot-anim');
+        _overlay.querySelector('ui-logo')?.classList.add('no-intro');
+      }
+      _overlay.delay = hasStartedOnce ? 170 : 0;
     }
 
     return shouldShow;

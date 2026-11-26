@@ -1,6 +1,8 @@
 export abstract class UIComponent extends HTMLElement {
   protected _engine: any = null;
   protected changeEvent: string = '';
+  protected template: string = '';
+
   private handleStateChange = (e: Event) => {
     const detail = e instanceof CustomEvent ? e.detail : undefined;
     this.updateUI(detail);
@@ -22,6 +24,19 @@ export abstract class UIComponent extends HTMLElement {
     }
   }
 
+  protected renderTemplate (useShadow: boolean = false): void {
+    if (!this.template) {
+      return;
+    }
+
+    if (useShadow) {
+      const root = this.shadowRoot || this.attachShadow({ mode: 'open' });
+      root.innerHTML = this.template;
+    } else {
+      this.innerHTML = this.template;
+    }
+  }
+
   public set engine (instance: any) {
     this.syncListener(true);
     this._engine = instance;
@@ -34,6 +49,7 @@ export abstract class UIComponent extends HTMLElement {
   }
 
   public connectedCallback (): void {
+    this.renderTemplate();
     this.updateUI();
   }
 
