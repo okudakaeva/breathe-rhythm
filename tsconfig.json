@@ -12,6 +12,7 @@
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "removeComments": true,
+    "noEmit": true,
   },
   "include": ["**/*.ts"]
 }
