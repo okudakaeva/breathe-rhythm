@@ -2,6 +2,81 @@ import { BRContext, BREngineConfig } from '../types.ts';
 import { BREffectBase, BRRenderSegment, BRTextSprite } from './br_effects_base.ts';
 import { BRTags } from '../br_tags.ts';
 
+const CONFIG = {
+  MIN_ALPHA: 0.005,
+  MIN_OPACITY: 0.01,
+  SLICE_BLEED: 4,
+  PIVOT_Y_OFFSET: 8,
+
+  SWEEP: {
+    defaultFeather: 36,
+    minClipWidth: 1,
+  },
+
+  ECHO: {
+    pulses: [
+      { start: 0.0, dur: 0.22, peakAlpha: 1.0, expand: 0.14 },
+      { start: 0.36, dur: 0.24, peakAlpha: 0.65, expand: 0.24 },
+      { start: 0.72, dur: 0.28, peakAlpha: 0.35, expand: 0.34 },
+    ],
+    spreadRatio: 0.52,
+    tailCompress: 0.55,
+    revealDur: 0.16,
+    baseAlpha: 0.25,
+    attackRatio: 0.2,
+    decayPower: 2.0,
+    ringsCount: 2,
+    innerRingScaleMult: 0.5,
+    innerRingAlpha: 0.95,
+    outerRingAlpha: 0.6,
+  },
+
+  MIRROR: {
+    spreadRatio: 0.65,
+    tailCompress: 0.65,
+    revealDur: 0.25,
+    baseAlpha: 0.25,
+    fadeOutStart: 0.7,
+    rippleFreq: 4,
+    rippleCharPhase: 0.45,
+    rippleAmp: 1.5,
+    rippleDamping: 0.4,
+    offsetY: 20,
+    scaleY: 0.72,
+    reflectionAlpha: 0.34,
+  },
+
+  WATER: {
+    maxTrails: 6,
+    minTrails: 2,
+    maxDriftX: 30,
+    convergeStart: 0.55,
+    convergeDur: 0.45,
+    trailLagStep: 0.22,
+    driftProgressDamping: 0.35,
+    waveFreq: 3,
+    waveTrailPhase: 1.3,
+    waveBaseAmp: 1.5,
+    waveRatioAmp: 3.5,
+    trailBaseAlpha: 0.52,
+    trailRatioFade: 0.32,
+    trailConvergeFade: 0.85,
+    mainRevealDur: 0.85,
+    mainWaveFreq: 2,
+    mainWaveAmp: 1.5,
+    mainBaseAlpha: 0.35,
+    glowSettleThreshold: 0.99,
+    glowOverlayAlpha: 0.85,
+  },
+
+  GROW: {
+    minScale: 0.45,
+    overshoot: 0.08,
+    spreadRatio: 0.68,
+    tailCompress: 0.65,
+  },
+} as const;
+
 export class BRSimpleEffects {
   private static drawSweepSprite (
       ctx: BRContext,
@@ -15,16 +90,17 @@ export class BRSimpleEffects {
       offsetY: number,
       alpha: number,
       useGlow: boolean,
-      feather: number = 36
+      feather: number = CONFIG.SWEEP.defaultFeather
   ): void {
-    if (progress <= 0 || alpha <= 0.01) {
+    if (progress <= 0 || alpha <= CONFIG.MIN_OPACITY) {
       return;
     }
 
     const easeSweep = BREffectBase.easeOutQuad(progress);
     const revealRight = startX - feather + (fullTextWidth + feather * 2) * easeSweep;
     const clipW = Math.max(0, Math.min(sprite.width, (revealRight - startX) + sprite.padX));
-    if (clipW <= 1) {
+
+    if (clipW <= CONFIG.SWEEP.minClipWidth) {
       return;
     }
 
@@ -37,35 +113,18 @@ export class BRSimpleEffects {
     ctx.drawImage(source, 0, 0, srcW, sprite.canvas.height, drawX, drawY, clipW, sprite.height);
   }
 
-  // ============================================================================
-  // ПУБЛИЧНЫЙ API
-  // ============================================================================
-
-  public static drawEcho (
+  private static forEachCharStep (
       ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
       segment: BRRenderSegment,
       startX: number,
-      y: number,
-      rgbVal: number,
-      baseOpacity: number,
-      echoPulses: Array<{ start: number; dur: number; peakAlpha: number; expand: number }> = [
-        { start: 0.0, dur: 0.22, peakAlpha: 1.0, expand: 0.14 },
-        { start: 0.36, dur: 0.24, peakAlpha: 0.65, expand: 0.24 },
-        { start: 0.72, dur: 0.28, peakAlpha: 0.35, expand: 0.34 },
-      ]
+      progress: number,
+      spreadRatio: number,
+      tailCompress: number,
+      onChar: (step: { index: number; ch: string; chW: number; cursorX: number; logicalOffset: number; localT: number }) => void
   ): number {
     const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
-    const sprite = segment.sprite;
-    const p = BREffectBase.clamp01(segment.progress);
-    if (!sprite) {
-      return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
-    }
-
     const chars = Array.from(segment.text);
     const count = Math.max(1, chars.length);
-    const bleed = 4;
 
     ctx.save();
     let cursorX = startX;
@@ -74,44 +133,11 @@ export class BRSimpleEffects {
     for (let i = 0; i < count; i++) {
       const ch = chars[i];
       const chW = segment.charWidths?.[i] ?? ctx.measureText(ch).width;
-      const startThreshold = count > 1 ? (i / count) * 0.52 : 0;
-      const localT = BREffectBase.clamp01((p - startThreshold) / (1 - startThreshold * 0.55));
+      const startThreshold = count > 1 ? (i / count) * spreadRatio : 0;
+      const localT = BREffectBase.clamp01((progress - startThreshold) / (1 - startThreshold * tailCompress));
 
-      if (localT > 0.005) {
-        const glyphStart = sprite.padX + logicalOffset;
-        const sliceLeft = Math.max(0, glyphStart - bleed);
-        const sliceRight = Math.min(sprite.width, glyphStart + chW + bleed);
-        const sliceLogicalW = Math.max(1, sliceRight - sliceLeft);
-
-        const srcX = Math.round(sliceLeft * dpr);
-        const srcW = Math.round(sliceLogicalW * dpr);
-        const drawBaseX = cursorX - (glyphStart - sliceLeft);
-        const drawBaseY = y - sprite.baselineY;
-
-        const mainReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(localT / 0.16));
-        ctx.globalAlpha = baseOpacity * (0.25 + 0.75 * mainReveal);
-        ctx.drawImage(sprite.canvas, srcX, 0, srcW, sprite.canvas.height, drawBaseX, drawBaseY, sliceLogicalW, sprite.height);
-
-        for (let e = 0; e < echoPulses.length; e++) {
-          const echo = echoPulses[e];
-          const echoT = BREffectBase.clamp01((localT - echo.start) / echo.dur);
-          if (echoT <= 0 || echoT >= 1) {
-            continue;
-          }
-
-          const wave = echoT < 0.2 ? echoT / 0.2 : Math.pow(1 - (echoT - 0.2) / 0.8, 2.0);
-          const expandProgress = BREffectBase.easeOutQuad(echoT);
-
-          for (let ring = 0; ring < 2; ring++) {
-            const ringMult = ring === 0 ? 0.5 : 1.0;
-            const scale = 1 + expandProgress * echo.expand * ringMult;
-            const drawX = drawBaseX - (sliceLogicalW * (scale - 1)) * 0.5;
-            const drawY = drawBaseY - (sprite.height * (scale - 1)) * 0.5;
-
-            ctx.globalAlpha = baseOpacity * echo.peakAlpha * wave * (ring === 0 ? 0.95 : 0.6);
-            ctx.drawImage(sprite.glowCanvas, srcX, 0, srcW, sprite.canvas.height, drawX, drawY, sliceLogicalW * scale, sprite.height * scale);
-          }
-        }
+      if (localT > CONFIG.MIN_ALPHA) {
+        onChar({ index: i, ch, chW, cursorX, logicalOffset, localT });
       }
 
       cursorX += chW;
@@ -122,167 +148,252 @@ export class BRSimpleEffects {
     return fullTextWidth;
   }
 
+  // ============================================================================
+  // ПУБЛИЧНЫЙ API
+  // ============================================================================
+
+  public static drawEcho (
+      ctx: BRContext,
+      _config: BREngineConfig,
+      dpr: number,
+      segment: BRRenderSegment,
+      startX: number,
+      y: number,
+      rgbVal: number,
+      baseOpacity: number,
+      echoPulses: ReadonlyArray<{ start: number; dur: number; peakAlpha: number; expand: number }> = CONFIG.ECHO.pulses
+  ): number {
+    const cfg = CONFIG.ECHO;
+    const sprite = segment.sprite;
+    const p = BREffectBase.clamp01(segment.progress);
+
+    if (!sprite) {
+      return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
+    }
+
+    return this.forEachCharStep(ctx, segment, startX, p, cfg.spreadRatio, cfg.tailCompress, ({ chW, cursorX, logicalOffset, localT }) => {
+      const glyphStart = sprite.padX + logicalOffset;
+      const sliceLeft = Math.max(0, glyphStart - CONFIG.SLICE_BLEED);
+      const sliceRight = Math.min(sprite.width, glyphStart + chW + CONFIG.SLICE_BLEED);
+      const sliceLogicalW = Math.max(1, sliceRight - sliceLeft);
+
+      const srcX = Math.round(sliceLeft * dpr);
+      const srcW = Math.round(sliceLogicalW * dpr);
+      const drawBaseX = cursorX - (glyphStart - sliceLeft);
+      const drawBaseY = y - sprite.baselineY;
+      const mainReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(localT / cfg.revealDur));
+
+      ctx.globalAlpha = baseOpacity * (cfg.baseAlpha + (1 - cfg.baseAlpha) * mainReveal);
+      ctx.drawImage(sprite.canvas, srcX, 0, srcW, sprite.canvas.height, drawBaseX, drawBaseY, sliceLogicalW, sprite.height);
+
+      for (let e = 0; e < echoPulses.length; e++) {
+        const echo = echoPulses[e];
+        const echoT = BREffectBase.clamp01((localT - echo.start) / echo.dur);
+        if (echoT <= 0 || echoT >= 1) {
+          continue;
+        }
+
+        const wave = echoT < cfg.attackRatio
+            ? echoT / cfg.attackRatio
+            : Math.pow(1 - (echoT - cfg.attackRatio) / (1 - cfg.attackRatio), cfg.decayPower);
+        const expandProgress = BREffectBase.easeOutQuad(echoT);
+
+        for (let ring = 0; ring < cfg.ringsCount; ring++) {
+          const ringMult = ring === 0 ? cfg.innerRingScaleMult : 1.0;
+          const scale = 1 + expandProgress * echo.expand * ringMult;
+          const drawX = drawBaseX - (sliceLogicalW * (scale - 1)) * 0.5;
+          const drawY = drawBaseY - (sprite.height * (scale - 1)) * 0.5;
+
+          ctx.globalAlpha = baseOpacity * echo.peakAlpha * wave * (ring === 0 ? cfg.innerRingAlpha : cfg.outerRingAlpha);
+          ctx.drawImage(sprite.glowCanvas, srcX, 0, srcW, sprite.canvas.height, drawX, drawY, sliceLogicalW * scale, sprite.height * scale);
+        }
+      }
+    });
+  }
+
   public static drawMirror (
       ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
+      _config: BREngineConfig,
+      _dpr: number,
       segment: BRRenderSegment,
       startX: number,
       y: number,
       rgbVal: number,
       baseOpacity: number
   ): number {
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
-    const chars = Array.from(segment.text);
-    const count = Math.max(1, chars.length);
+    const cfg = CONFIG.MIRROR;
     const p = BREffectBase.clamp01(segment.progress);
 
-    ctx.save();
-    let cursorX = startX;
+    return this.forEachCharStep(ctx, segment, startX, p, cfg.spreadRatio, cfg.tailCompress, ({ index, ch, cursorX, localT }) => {
+      const charReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(localT / cfg.revealDur));
 
-    for (let i = 0; i < count; i++) {
-      const ch = chars[i];
-      const chW = segment.charWidths?.[i] ?? ctx.measureText(ch).width;
-      const startThreshold = count > 1 ? (i / count) * 0.65 : 0;
-      const localT = BREffectBase.clamp01((p - startThreshold) / (1 - startThreshold * 0.65));
+      BREffectBase.drawStyledText(ctx, ch, {
+        x: cursorX,
+        y,
+        rgbVal,
+        alpha: baseOpacity * (cfg.baseAlpha + (1 - cfg.baseAlpha) * charReveal),
+      });
 
-      if (localT > 0.005) {
-        const charReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(localT / 0.25));
+      const reflectionLife = localT < cfg.fadeOutStart
+          ? BREffectBase.easeOutCubic(localT / cfg.fadeOutStart)
+          : 1 - BREffectBase.easeOutQuad((localT - cfg.fadeOutStart) / (1 - cfg.fadeOutStart));
+
+      if (reflectionLife > CONFIG.MIN_OPACITY) {
+        const rippleOffsetY = Math.sin(
+            p * Math.PI * cfg.rippleFreq + index * cfg.rippleCharPhase
+        ) * cfg.rippleAmp * (1 - localT * cfg.rippleDamping);
+        const reflectionY = y + cfg.offsetY + rippleOffsetY;
+
+        ctx.save();
+        ctx.translate(0, reflectionY);
+        ctx.scale(1, cfg.scaleY);
+
         BREffectBase.drawStyledText(ctx, ch, {
           x: cursorX,
-          y,
+          y: 0,
           rgbVal,
-          alpha: baseOpacity * (0.25 + 0.75 * charReveal),
+          alpha: baseOpacity * cfg.reflectionAlpha * reflectionLife,
         });
 
-        const reflectionLife = localT < 0.7
-            ? BREffectBase.easeOutCubic(localT / 0.7)
-            : 1 - BREffectBase.easeOutQuad((localT - 0.7) / 0.3);
-
-        if (reflectionLife > 0.01) {
-          const rippleOffsetY = Math.sin(p * Math.PI * 4 + i * 0.45) * 1.5 * (1 - localT * 0.4);
-          const reflectionY = y + 20 + rippleOffsetY;
-
-          ctx.save();
-          ctx.translate(0, reflectionY);
-          ctx.scale(1, 0.72);
-
-          BREffectBase.drawStyledText(ctx, ch, {
-            x: cursorX,
-            y: 0,
-            rgbVal,
-            alpha: baseOpacity * 0.34 * reflectionLife,
-          });
-
-          ctx.restore();
-        }
+        ctx.restore();
       }
-
-      cursorX += chW;
-    }
-
-    ctx.restore();
-    return fullTextWidth;
+    });
   }
-
 
   public static drawWater (
       ctx: BRContext,
-      config: BREngineConfig,
+      _config: BREngineConfig,
       dpr: number,
       segment: BRRenderSegment,
       startX: number,
       y: number,
       rgbVal: number,
       baseOpacity: number,
-      maxTrails: number = 6,
-      maxDriftX: number = 30
+      maxTrails: number = CONFIG.WATER.maxTrails,
+      maxDriftX: number = CONFIG.WATER.maxDriftX
   ): number {
+    const cfg = CONFIG.WATER;
     const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
+
     if (!sprite) {
-      return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
+      return BREffectBase.fallbackText(
+          ctx,
+          segment.text,
+          startX,
+          y,
+          rgbVal,
+          baseOpacity * p,
+      );
     }
 
     ctx.save();
+
     const syllablesCount = segment.syllables?.length ?? BRTags.splitIntoSyllables(segment.text).length;
-    const trailCount = Math.min(maxTrails, Math.max(2, syllablesCount));
-    const converge = BREffectBase.easeOutCubic(BREffectBase.clamp01((p - 0.55) / 0.45));
+    const trailCount = Math.min(maxTrails, Math.max(cfg.minTrails, syllablesCount));
+    const converge = BREffectBase.easeOutCubic(BREffectBase.clamp01((p - cfg.convergeStart) / cfg.convergeDur));
     const trailDamping = 1 - converge;
 
     for (let t = trailCount - 1; t >= 0; t--) {
       const ratio = (t + 1) / trailCount;
-      const lag = ratio * 0.22;
+      const lag = ratio * cfg.trailLagStep;
       const trailP = BREffectBase.clamp01((p - lag) / (1 - lag));
+
       if (trailP <= 0) {
         continue;
       }
 
-      const curOffsetX = (ratio * maxDriftX) * trailDamping * (1 - trailP * 0.35);
-      const curOffsetY = Math.sin(p * Math.PI * 3 + t * 1.3) * (1.5 + ratio * 3.5) * trailDamping;
-      const curAlpha = baseOpacity * (0.52 - ratio * 0.32) * (1 - converge * 0.85);
-      this.drawSweepSprite(ctx, dpr, sprite, fullTextWidth, startX, y, trailP, curOffsetX, curOffsetY, curAlpha, true, 36);
+      const curOffsetX = (ratio * maxDriftX) * trailDamping * (1 - trailP * cfg.driftProgressDamping);
+      const curOffsetY = Math.sin(
+          p * Math.PI * cfg.waveFreq + t * cfg.waveTrailPhase) * (cfg.waveBaseAmp + ratio * cfg.waveRatioAmp
+      ) * trailDamping;
+      const curAlpha = baseOpacity * (cfg.trailBaseAlpha - ratio * cfg.trailRatioFade) * (1 - converge * cfg.trailConvergeFade);
+      this.drawSweepSprite(
+          ctx,
+          dpr,
+          sprite,
+          fullTextWidth,
+          startX,
+          y,
+          trailP,
+          curOffsetX,
+          curOffsetY,
+          curAlpha,
+          true,
+          CONFIG.SWEEP.defaultFeather,
+      );
     }
-
-    const mainP = BREffectBase.clamp01(p / 0.85);
+    const mainP = BREffectBase.clamp01(p / cfg.mainRevealDur);
     const mainEase = BREffectBase.easeOutCubic(mainP);
-    const mainWaveY = Math.sin(p * Math.PI * 2) * 1.5 * (1 - mainEase);
-    this.drawSweepSprite(ctx, dpr, sprite, fullTextWidth, startX, y, mainP, 0, mainWaveY, baseOpacity * (0.35 + 0.65 * mainEase), false, 36);
-    if (mainEase < 0.99) {
-      this.drawSweepSprite(ctx, dpr, sprite, fullTextWidth, startX, y, mainP, 0, mainWaveY, baseOpacity * (1 - mainEase) * 0.85, true, 36);
+    const mainWaveY = Math.sin(p * Math.PI * cfg.mainWaveFreq) * cfg.mainWaveAmp * (1 - mainEase);
+
+    this.drawSweepSprite(
+        ctx,
+        dpr,
+        sprite,
+        fullTextWidth,
+        startX,
+        y,
+        mainP,
+        0,
+        mainWaveY,
+        baseOpacity * (cfg.mainBaseAlpha + (1 - cfg.mainBaseAlpha) * mainEase),
+        false,
+        CONFIG.SWEEP.defaultFeather,
+    );
+
+    if (mainEase < cfg.glowSettleThreshold) {
+      this.drawSweepSprite(
+          ctx,
+          dpr,
+          sprite,
+          fullTextWidth,
+          startX,
+          y,
+          mainP,
+          0,
+          mainWaveY,
+          baseOpacity * (1 - mainEase) * cfg.glowOverlayAlpha,
+          true,
+          CONFIG.SWEEP.defaultFeather,
+      );
     }
 
     ctx.restore();
+
     return fullTextWidth;
   }
 
   public static drawGrow (
       ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
+      _config: BREngineConfig,
+      _dpr: number,
       segment: BRRenderSegment,
       startX: number,
       y: number,
       rgbVal: number,
       baseOpacity: number,
-      minScale: number = 0.45,
-      overshoot: number = 0.08
+      minScale: number = CONFIG.GROW.minScale,
+      overshoot: number = CONFIG.GROW.overshoot
   ): number {
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
-    const chars = Array.from(segment.text);
-    const count = Math.max(1, chars.length);
+    const cfg = CONFIG.GROW;
     const p = BREffectBase.clamp01(segment.progress);
 
-    ctx.save();
-    let cursorX = startX;
+    return this.forEachCharStep(ctx, segment, startX, p, cfg.spreadRatio, cfg.tailCompress, ({ ch, chW, cursorX, localT }) => {
+      const ease = BREffectBase.easeOutCubic(localT);
+      const bounce = Math.sin(localT * Math.PI) * overshoot;
+      const scale = minScale + (1 - minScale) * ease + bounce;
 
-    for (let i = 0; i < count; i++) {
-      const ch = chars[i];
-      const chW = segment.charWidths?.[i] ?? ctx.measureText(ch).width;
-      const startThreshold = count > 1 ? (i / count) * 0.68 : 0;
-      const localT = BREffectBase.clamp01((p - startThreshold) / (1 - startThreshold * 0.65));
-
-      if (localT > 0.005) {
-        const ease = BREffectBase.easeOutCubic(localT);
-        const bounce = Math.sin(localT * Math.PI) * overshoot;
-        const scale = minScale + (1 - minScale) * ease + bounce;
-
-        BREffectBase.drawStyledText(ctx, ch, {
-          x: cursorX,
-          y,
-          rgbVal,
-          alpha: baseOpacity * ease,
-          scale,
-          pivotX: cursorX + chW / 2,
-          pivotY: y - 8,
-        });
-      }
-
-      cursorX += chW;
-    }
-
-    ctx.restore();
-    return fullTextWidth;
+      BREffectBase.drawStyledText(ctx, ch, {
+        x: cursorX,
+        y,
+        rgbVal,
+        alpha: baseOpacity * ease,
+        scale,
+        pivotX: cursorX + chW / 2,
+        pivotY: y - CONFIG.PIVOT_Y_OFFSET,
+      });
+    });
   }
 }

@@ -296,7 +296,7 @@ ui-logo:not(.no-intro) .dots-right {
 }
 
 ui-logo:not(.no-intro) .char {
-    animation: charTypeIn 0.3s ease calc(0.35s + var(--i) * 70ms) both;
+    animation: charTypeIn 0.35s ease calc(0.35s + var(--i) * 100ms) both;
 }
 
 @keyframes bootFadeUp {

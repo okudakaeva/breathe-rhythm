@@ -1,5 +1,6 @@
-import { BRParserConfig, BRToken, BRTemplate } from './types.ts';
+import { BRParserConfig, BRTemplate, BRToken } from './types.ts';
 import { BRTags } from './br_tags.ts';
+import { brDict } from './br_dictionary.ts';
 
 export interface BRParserRules {
   hellip: string[];
@@ -17,7 +18,7 @@ export const BR_PARSER_CONFIG: BRParserConfig = {
   dash: 700,
   ending: 500,
   separators: 400,
-  colon: 700
+  colon: 700,
 };
 
 export const BR_PARSER_RULES: BRParserRules = {
@@ -53,6 +54,7 @@ export class BRParser {
       tagName: string,
       innerText: string,
       param: string | undefined,
+      config: BRParserConfig,
       rules: BRParserRules
   ): BRToken[] {
     const openEsc = this.escapeRegExp(rules.pause.open);
@@ -60,7 +62,7 @@ export class BRParser {
     const pauseRegex = new RegExp(`${ openEsc }(\\d+)${ closeEsc }`, 'g');
 
     const cleanText = innerText.replace(pauseRegex, '');
-    const totalDuration = BRTags.calcDuration(tagName, cleanText, param);
+    const totalDuration = BRTags.calcDuration(tagName, cleanText, config, param);
     const totalChars = Math.max(1, cleanText.length);
 
     const result: BRToken[] = [];
@@ -69,13 +71,14 @@ export class BRParser {
 
     while ((match = pauseRegex.exec(innerText)) !== null) {
       const chunk = innerText.slice(lastIndex, match.index);
+
       if (chunk.length > 0) {
         result.push({
           type: 'tag',
           tag: tagName,
           param,
           value: chunk,
-          delay: Math.max(150, Math.round(totalDuration * (chunk.length / totalChars))),
+          delay: Math.max(brDict['MIN_TAG_CHUNK_DELAY'], Math.round(totalDuration * (chunk.length / totalChars))),
         });
       }
 
@@ -87,6 +90,7 @@ export class BRParser {
     }
 
     const tailChunk = innerText.slice(lastIndex);
+
     if (tailChunk.length > 0) {
       result.push({
         type: 'tag',
@@ -95,7 +99,7 @@ export class BRParser {
         value: tailChunk,
         delay: lastIndex === 0
             ? totalDuration
-            : Math.max(150, Math.round(totalDuration * (tailChunk.length / totalChars))),
+            : Math.max(brDict['MIN_TAG_CHUNK_DELAY'], Math.round(totalDuration * (tailChunk.length / totalChars))),
       });
     }
 
@@ -127,7 +131,7 @@ export class BRParser {
         if (tagMatch) {
           const [fullMatch, tagName, rawParam, innerText] = tagMatch;
           const param = rawParam?.trim();
-          tokens.push(...this.parseTag(tagName, innerText, param, rules));
+          tokens.push(...this.parseTag(tagName, innerText, param, config, rules));
           i += fullMatch.length;
           continue;
         }
@@ -170,7 +174,11 @@ export class BRParser {
         tokens.push({ type: 'colon', value: current, delay: config.colon });
         i++;
       } else {
-        tokens.push({ type: 'char', value: current, delay: current === ' ' ? Math.round(config.char * 0.5) : config.char });
+        tokens.push({
+          type: 'char',
+          value: current,
+          delay: current === ' ' ? Math.round(config.char * brDict['SPACE_DELAY_RATIO']) : config.char
+        });
         i++;
       }
     }

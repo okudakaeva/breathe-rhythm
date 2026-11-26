@@ -22,12 +22,12 @@ export type BRSceneCommand =
     | { type: 'finish'; delay: number };
 
 const BR_ENGINE_CONFIG: BREngineConfig = {
-  bgColor: '#0b0b0b',
+  bgColor: brDict['OVERLAY'],
   textColor: 140,
   activeTextColor: '#ffffff',
   shadowColor: '#ffffff',
   finishedShadowColor: '#f0f0f0',
-  font: '28px "Courier New", monospace',
+  font: `${brDict['BASE_FONT_SIZE']}px ${brDict['BASE_FONT']}`,
   paddingX: 80,
   paddingBottom: brDict['BTN_SIZE'] + brDict['TOOLBAR_BOTTOM'],
   lineHeight: 60,
@@ -240,7 +240,7 @@ export class BreatheRhythmEngine extends HTMLElement {
 
     if (this.pendingDelay > 0 && this.pendingCommandType) {
       const resumeDelay = this.pendingCommandType === 'line-end' || this.pendingCommandType === 'pause'
-          ? Math.max(200, Math.round(this.pendingDelay * 0.5))
+          ? Math.max(brDict['MIN_RESUME_DELAY'], Math.round(this.pendingDelay * brDict['PAUSE_RESUME_RATIO']))
           : this.pendingDelay;
 
       const resumed = await this.waitInterruption(resumeDelay, this.pendingCommandType, signal);

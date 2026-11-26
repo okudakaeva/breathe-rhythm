@@ -1,9 +1,6 @@
 import { applyDict, brDict } from './br_dictionary.ts';
 import { BreatheRhythmEngine } from './breathe_rhythm_engine.ts';
-import { UIButton } from './ui/ui_button.ts';
-import { UIIconName } from './ui/ui_icon.ts';
-import { UIOverlay } from './ui/ui_overlay.ts';
-import { UIToolbar } from './ui/ui_toolbar.ts';
+import { UIButton, UIIconName, UIOverlay, UIToolbar } from './ui';
 
 applyDict();
 

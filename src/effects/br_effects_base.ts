@@ -81,6 +81,8 @@ export interface BRTextDrawOptions {
   pivotY?: number;
 }
 
+const CORE_RADIUS = 4;
+
 export class BREffectBase {
   private static glowDotCache: Map<string, { canvas: HTMLCanvasElement; size: number }> = new Map();
 
@@ -110,7 +112,9 @@ export class BREffectBase {
       alpha: number
   ): number {
     const width = ctx.measureText(text).width;
+
     this.drawStyledText(ctx, text, { x: startX, y, rgbVal, alpha });
+
     return width;
   }
 
@@ -126,6 +130,7 @@ export class BREffectBase {
     }
 
     ctx.fillStyle = `rgba(${ opts.rgbVal }, ${ opts.rgbVal }, ${ opts.rgbVal }, ${ opts.alpha })`;
+
     if (opts.shadowBlur && opts.shadowBlur > 0) {
       ctx.shadowColor = (opts.shadowColor ?? '#ffffff') as string;
       ctx.shadowBlur = opts.shadowBlur;
@@ -142,24 +147,27 @@ export class BREffectBase {
       font: string,
       text: string,
       color: string = '#ffffff',
-      glowBlur: number = 16
+      glowBlur: number = brDict['SPRITE_GLOW_BLUR']
   ): BRTextSprite {
-    const dpr = brDict['DPR'];
     ctx.font = font;
+
+    const dpr = brDict['DPR'];
     const textWidth = Math.ceil(ctx.measureText(text).width);
     const fontSize = this.extractFontSize(font);
 
-    const padX = 24;
+    const padX = brDict['SPRITE_PAD_X'];
     const padY = Math.ceil(fontSize * 0.9);
-    const width = Math.max(10, textWidth + padX * 2);
-    const height = Math.max(10, Math.ceil(fontSize * 1.8) + padY * 2);
+    const width = Math.max(brDict['SPRITE_MIN_SIZE'], textWidth + padX * 2);
+    const height = Math.max(brDict['SPRITE_MIN_SIZE'], Math.ceil(fontSize * brDict['SPRITE_LINE_RATIO']) + padY * 2);
     const baselineY = padY + fontSize;
 
     const buildLayer = (withGlow: boolean): HTMLCanvasElement => {
       const canvas = document.createElement('canvas');
+      const octx = canvas.getContext(brDict['CONTEXT']);
+
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
-      const octx = canvas.getContext('2d');
+
       if (octx) {
         octx.scale(dpr, dpr);
         octx.font = font;
@@ -172,6 +180,7 @@ export class BREffectBase {
         }
         octx.fillText(text, padX, baselineY);
       }
+
       return canvas;
     };
 
@@ -217,10 +226,13 @@ export class BREffectBase {
       useCubic: boolean = true
   ): void {
     const reveal = this.clamp01((progress - revealStart) / (1 - revealStart));
+
     if (reveal <= 0.01) {
       return;
     }
+
     const ease = useCubic ? this.easeOutCubic(reveal) : this.easeOutQuad(reveal);
+
     this.drawStyledText(ctx, text, {
       x: startX,
       y,
@@ -290,6 +302,7 @@ export class BREffectBase {
     }
 
     render(grains, textWidth);
+
     return textWidth;
   }
 
@@ -297,36 +310,40 @@ export class BREffectBase {
     if (typeof window === 'undefined') {
       return false;
     }
+
     return window.innerWidth < brDict['MOBILE_BREAKPOINT'] || navigator.maxTouchPoints > 0;
   }
 
   public static getGlowDot (color: string = '#ffffff', blur: number = 14): { canvas: HTMLCanvasElement; size: number } {
     const key = `${ color }_${ blur }`;
     const cached = this.glowDotCache.get(key);
+
     if (cached) {
       return cached;
     }
 
     const dpr = brDict['DPR'];
-    const coreRadius = 4;
-    const size = Math.ceil((coreRadius + blur) * 2);
+    const size = Math.ceil((CORE_RADIUS + blur) * 2);
     const canvas = document.createElement('canvas');
+    const octx = canvas.getContext(brDict['CONTEXT']);
+
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
 
-    const octx = canvas.getContext('2d');
     if (octx) {
       octx.scale(dpr, dpr);
       octx.fillStyle = color;
       octx.shadowColor = color;
       octx.shadowBlur = blur;
       octx.beginPath();
-      octx.arc(size / 2, size / 2, coreRadius, 0, Math.PI * 2);
+      octx.arc(size / 2, size / 2, CORE_RADIUS, 0, Math.PI * 2);
       octx.fill();
     }
 
     const entry = { canvas, size };
+
     this.glowDotCache.set(key, entry);
+
     return entry;
   }
 
@@ -341,7 +358,9 @@ export class BREffectBase {
     if (alpha <= 0.005) {
       return;
     }
-    const drawSize = dot.size * (radius / 4);
+
+    const drawSize = dot.size * (radius / CORE_RADIUS);
+
     ctx.globalAlpha = alpha;
     ctx.drawImage(dot.canvas, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize);
   }

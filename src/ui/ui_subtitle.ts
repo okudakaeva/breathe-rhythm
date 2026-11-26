@@ -21,10 +21,7 @@ export class UISubtitle extends UIComponent {
     }
 
     const match = raw.match(/^(\.{3})([\s\S]*?)(\.{3})$/) || ['','',raw,''];
-
     const [, leftDots, coreText, rightDots] = match;
-
-    console.log(raw, match, leftDots, coreText, rightDots)
 
     this.template = `
         <p class="subtitle" data-dict="APP_SUBTITLE">

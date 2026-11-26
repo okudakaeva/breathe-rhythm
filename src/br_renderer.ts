@@ -1,5 +1,5 @@
 import { BRContext, BREngineConfig } from './types.ts';
-import { BREffectBase, BREffects, BRRenderSegment } from './br_effects.ts';
+import { BREffectBase, BREffects, BRRenderSegment } from './effects/br_effects.ts';
 import { brDict } from './br_dictionary.ts';
 
 export interface BRCtxMetrics {
@@ -40,7 +40,7 @@ export class BRRenderer {
     wordFinishedTest: RegExp;
   }) {
     this.canvas = initializer.canvas;
-    this.ctx = this.canvas.getContext('2d')!;
+    this.ctx = this.canvas.getContext(brDict['CONTEXT'])!;
     this.lines = initializer.lines;
     this.engineConfig = initializer.engineConfig;
     this.wordFinishedTest = initializer.wordFinishedTest;
@@ -72,7 +72,7 @@ export class BRRenderer {
     if (Math.abs(diff) <= 0.1) {
       this.currentScrollY = targetScrollY;
     } else {
-      this.currentScrollY += diff * 0.035;
+      this.currentScrollY += diff * brDict['SCROLL_EASING'];
     }
   }
 
@@ -84,13 +84,13 @@ export class BRRenderer {
         (!isLastLine || line.isTyping || !this.isRunning);
 
     if (this.isFinished) {
-      if (line.fadeFactor < 0.85) {
-        line.fadeFactor = Math.min(0.85, line.fadeFactor + 0.015);
+      if (line.fadeFactor < brDict['FINISHED_LINE_FADE']) {
+        line.fadeFactor = Math.min(brDict['FINISHED_LINE_FADE'], line.fadeFactor + brDict['LINE_FADE_IN_STEP']);
       }
     } else if (isCurrentActive) {
       line.fadeFactor = 1.0;
     } else if (line.fadeFactor > 0.0) {
-      line.fadeFactor = Math.max(0.0, line.fadeFactor - 0.04);
+      line.fadeFactor = Math.max(0.0, line.fadeFactor - brDict['LINE_FADE_OUT_STEP']);
     }
 
     return line.fadeFactor;
@@ -100,6 +100,7 @@ export class BRRenderer {
     if (this.isFinished && fadeFactor < 0.4) {
       return Math.sin((fadeFactor / 0.4) * Math.PI) * this.engineConfig.maxShadowBlur;
     }
+
     return 0;
   }
 
@@ -128,6 +129,7 @@ export class BRRenderer {
 
     this.ctx.fillStyle = `rgba(${ rgbVal }, ${ rgbVal }, ${ rgbVal }, ${ opacity })`;
     this.ctx.shadowBlur = 0;
+
     if (stableText.length > 0) {
       this.ctx.fillText(stableText, x, y);
     }
@@ -135,7 +137,7 @@ export class BRRenderer {
     this.ctx.save();
     this.ctx.fillStyle = this.engineConfig.activeTextColor;
     this.ctx.shadowColor = this.engineConfig.shadowColor;
-    this.ctx.shadowBlur = 20 * this.dpr;
+    this.ctx.shadowBlur = brDict['ACTIVE_WORD_GLOW'] * this.dpr;
     this.ctx.fillText(activeWord, x + stableWidth, y);
     this.ctx.restore();
   }
@@ -163,6 +165,7 @@ export class BRRenderer {
         cursorX += seg.totalWidth;
       } else {
         let segRgb = rgbVal;
+
         if (seg.tag && seg.finishedAt !== undefined) {
           const settleT = Math.min(1, (now - seg.finishedAt) / brDict['SETTLE_DURATION']);
           segRgb = Math.round(255 + (rgbVal - 255) * settleT);
@@ -196,7 +199,7 @@ export class BRRenderer {
     const now = performance.now();
 
     return this.lines.some((line, i) =>
-        (this.isFinished && line.fadeFactor < 0.85) ||
+        (this.isFinished && line.fadeFactor < brDict['FINISHED_LINE_FADE']) ||
         (!this.isFinished && i !== this.activeLineIdx && line.fadeFactor > 0) ||
         line.segments.some(
             seg => seg.progress < 1 || (seg.finishedAt !== undefined && now - seg.finishedAt < brDict['SETTLE_DURATION'])
@@ -212,9 +215,9 @@ export class BRRenderer {
     if (name === 'flash') {
       const x = this.logicalWidth / 2;
       const y = this.metrics.initialY + (this.activeLineIdx * this.metrics.lineHeight) - this.currentScrollY + 15;
-      const spreadX = Math.min(400, this.logicalWidth - this.metrics.paddingX * 2);
+      const spreadX = Math.min(brDict['FLASH_MIN_SPREAD'], this.logicalWidth - this.metrics.paddingX * 2);
 
-      BREffects.triggerFlash(this.ctx, x, y, spreadX, 60);
+      BREffects.triggerFlash(this.ctx, x, y, spreadX, brDict['FLASH_COUNT']);
     }
   }
 
@@ -236,6 +239,7 @@ export class BRRenderer {
         for (const seg of line.segments) {
           if (seg.progress < 1) {
             seg.progress = Math.min(1, seg.progress + dt / seg.duration);
+
             if (seg.progress >= 1) {
               seg.finishedAt = now;
               BREffects.disposeSegment(seg);
@@ -244,14 +248,14 @@ export class BRRenderer {
         }
       }
 
-      if (y < -this.metrics.lineHeight || y > this.logicalHeight + 40) {
+      if (y < -this.metrics.lineHeight || y > this.logicalHeight + this.metrics.lineHeight) {
         continue;
       }
 
       const t = this.updateLineFadeFactor(line, i);
       const shadowBlur = this.getLineShadowBlur(t);
       const rgbVal = Math.round(this.engineConfig.textColor + (255 - this.engineConfig.textColor) * t);
-      const opacity = 0.3 + (0.7 * t);
+      const opacity = brDict['DIMMED_LINE_OPACITY'] + ((1 - brDict['DIMMED_LINE_OPACITY']) * t);
       const hasAnimatedTag = line.segments.some(seg => Boolean(seg.tag));
 
       if (hasAnimatedTag && !this.isFinished) {
@@ -268,15 +272,17 @@ export class BRRenderer {
     if (!this.canvas || !this.ctx) {
       return;
     }
+
     this.dpr = brDict['DPR'];
+
     const width = this.logicalWidth;
     const scale = Math.min(1, width / brDict['MOBILE_BREAKPOINT']);
     const fontMatch = this.engineConfig.font.match(/^(\d+(?:\.\d+)?)px\s+(.+)$/);
-    const baseFontSize = fontMatch ? parseFloat(fontMatch[1]) : 28;
-    const fontFamily = fontMatch ? fontMatch[2] : '"Courier New", monospace';
-    const paddingX = Math.max(20, Math.min(this.engineConfig.paddingX, Math.round(width * 0.06)));
-    const maxWidth = Math.max(100, width - paddingX * 2);
-    let fontSize = Math.max(14, Math.round(baseFontSize * scale));
+    const baseFontSize = fontMatch ? parseFloat(fontMatch[1]) : brDict['BASE_FONT_SIZE'];
+    const fontFamily = fontMatch ? fontMatch[2] : brDict['BASE_FONT'];
+    const paddingX = Math.max(brDict['MIN_PADDING_X'], Math.min(this.engineConfig.paddingX, Math.round(width * brDict['PADDING_X_RATIO'])));
+    const maxWidth = Math.max(brDict['MIN_LINE_WIDTH'], width - paddingX * 2);
+    let fontSize = Math.max(brDict['MOBILE_MIN_FONT_SIZE'], Math.round(baseFontSize * scale));
 
     if (this.lines.length > 0) {
       this.ctx.font = `${ fontSize }px ${ fontFamily }`;
@@ -285,15 +291,17 @@ export class BRRenderer {
           ...this.lines.map(line => this.ctx.measureText(line.text).width)
       );
       if (longestLineWidth > maxWidth) {
-        fontSize = Math.max(12, Math.floor(fontSize * (maxWidth / longestLineWidth)));
+        fontSize = Math.max(brDict['MIN_FONT_SIZE'], Math.floor(fontSize * (maxWidth / longestLineWidth)));
       }
     }
+
     const fontRatio = fontSize / baseFontSize;
+
     this.metrics = {
       font: `${ fontSize }px ${ fontFamily }`,
       paddingX,
-      lineHeight: Math.max(24, Math.round(this.engineConfig.lineHeight * fontRatio)),
-      initialY: Math.max(36, Math.round(this.engineConfig.initialY * scale)),
+      lineHeight: Math.max(brDict['MIN_LINE_HEIGHT'], Math.round(this.engineConfig.lineHeight * fontRatio)),
+      initialY: Math.max(brDict['MIN_INITIAL_Y'], Math.round(this.engineConfig.initialY * scale)),
     };
 
     this.lines.forEach(line => {
@@ -332,6 +340,7 @@ export class BRRenderer {
     line.isTyping = true;
 
     const lastSeg = line.segments[line.segments.length - 1];
+
     if (lastSeg && !lastSeg.tag) {
       lastSeg.text += char;
       lastSeg.totalWidth = undefined;
@@ -342,6 +351,7 @@ export class BRRenderer {
 
   public appendTag (lineIndex: number, tag: string, text: string, duration: number, param?: string): void {
     const line = this.lines[lineIndex];
+
     if (!line) {
       return;
     }
@@ -365,6 +375,7 @@ export class BRRenderer {
       if (seg.progress < 1) {
         seg.finishedAt = performance.now();
       }
+
       seg.progress = 1;
       BREffects.disposeSegment(seg);
     });
