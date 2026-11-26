@@ -18,6 +18,7 @@
     <meta property="og:description"
           content="Слова сгорают как холсты... Интерактивный Canvas-движок визуализации живой поэзии 🎙️🌊✨Breathe Rhythm">
     <meta property="og:image" content="https://okudakaeva.github.io/breathe-rhythm/images/og-preview.png">
+    <meta property="og:image:secure_url" content="https://okudakaeva.github.io/breathe-rhythm/images/og-preview.png" />
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Breathe Rhythm">
@@ -29,44 +30,40 @@
           content="Слова сгорают как холсты... Интерактивный Canvas-движок визуализации живой поэзии 🎙️🌊✨Breathe Rhythm">
     <meta name="twitter:image" content="https://okudakaeva.github.io/breathe-rhythm/images/og-preview.png">
     <meta name="theme-color" content="#0b0b0b">
-    <script src="./ui/ui_overlay.js" type="module"></script>
-    <script src="./ui/ui_toolbar.js" type="module"></script>
-    <script src="./ui/ui_button.js" type="module"></script>
-    <script src="./ui/ui_icon.js" type="module"></script>
+    <script src="./ui/index.js" type="module"></script>
     <script src="./breathe_rhythm_engine.js" type="module"></script>
     <script src="./main.js" type="module"></script>
 </head>
 <body>
+    <breathe-rhythm id="engine" visible></breathe-rhythm>
 
-<breathe-rhythm id="engine" visible></breathe-rhythm>
+    <ui-overlay id="pauseOverlay" delay="350" hidden>
+        <h2 class="screen-title" data-dict="PAUSE_TITLE"></h2>
+        <p class="screen-subtitle" data-dict="APP_SUBTITLE"></p>
+        <ui-button id="btnResume" class="btn-play-large" data-dict="BTN_RESUME">
+            <ui-icon name="play" slot="icon"></ui-icon>
+        </ui-button>
+    </ui-overlay>
 
-<ui-overlay id="pauseOverlay" delay="350" hidden changeevent="engine-state-change">
-    <h2 class="screen-title">...ПАУЗА...</h2>
-    <p class="screen-subtitle">...В ритме дыхания...</p>
-    <ui-button id="btnResume" class="btn-play-large" changeevent="engine-state-change" label="Продолжить">
-        <ui-icon name="play" slot="icon"></ui-icon>
-    </ui-button>
-</ui-overlay>
+    <ui-toolbar id="controls" hidden>
+        <ui-button id="btnStart" data-dict="BTN_START">
+            <ui-icon name="play" slot="icon"></ui-icon>
+        </ui-button>
+        <ui-button id="btnReset" data-dict="BTN_RESET">
+            <ui-icon name="reset" slot="icon"></ui-icon>
+        </ui-button>
+    </ui-toolbar>
 
-<ui-toolbar id="controls" hidden changeevent="engine-state-change">
-    <ui-button id="btnStart" changeevent="engine-state-change" label="Старт">
-        <ui-icon name="play" slot="icon"></ui-icon>
-    </ui-button>
-    <ui-button id="btnReset" changeevent="engine-state-change" label="Выход">
-        <ui-icon name="reset" slot="icon"></ui-icon>
-    </ui-button>
-</ui-toolbar>
-
-<ui-overlay id="startOverlay" visible delay="0" changeevent="engine-state-change">
-    <h1 class="screen-title">...BREATHE&nbsp;&nbsp;<br/>&nbsp;&nbsp;RHYTHM...</h1>
-    <p class="screen-subtitle">...В ритме дыхания...</p>
-    <ui-button id="btnInitStart" class="btn-play-large" changeevent="engine-state-change" label="Начать">
-        <ui-icon name="play" slot="icon"></ui-icon>
-    </ui-button>
-    <div class="key-hints">
-        <span><kbd>SPACE</kbd> старт / пауза</span>
-        <span><kbd>R</kbd> выход</span>
-    </div>
-</ui-overlay>
+    <ui-overlay id="startOverlay" class="boot-anim" visible delay="0">
+        <ui-logo data-dict="APP_TITLE"></ui-logo>
+        <ui-subtitle data-dict="APP_SUBTITLE"></ui-subtitle>
+        <ui-button id="btnInitStart" class="btn-play-large" data-dict="BTN_START">
+            <ui-icon name="play" slot="icon"></ui-icon>
+        </ui-button>
+        <div class="key-hints">
+            <span><kbd data-dict="HINT_SPACE_KEY"></kbd> <span data-dict="HINT_SPACE_DESC"></span></span>
+            <span><kbd data-dict="HINT_RESET_KEY"></kbd> <span data-dict="HINT_RESET_DESC"></span></span>
+        </div>
+    </ui-overlay>
 </body>
 </html>

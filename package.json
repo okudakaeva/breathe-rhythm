@@ -17,10 +17,11 @@
     "typescript"
   ],
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch"
+    "build": "tsc --noEmit && esbuild ./src/main.ts ./src/breathe_rhythm_engine.ts ./src/ui/index.ts --bundle --splitting --minify --sourcemap --format=esm --target=es2022 --outdir=src",
+    "watch": "esbuild ./src/main.ts ./src/breathe_rhythm_engine.ts ./src/ui/index.ts --bundle --splitting --sourcemap --format=esm --target=es2022 --outdir=src --watch"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "typescript": "^5.4.5"
   }
 }

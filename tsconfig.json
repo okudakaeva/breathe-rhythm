@@ -10,7 +10,9 @@
     "sourceMap": true,
     "strict": true,
     "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "removeComments": true,
+    "noEmit": true,
   },
   "include": ["**/*.ts"]
 }

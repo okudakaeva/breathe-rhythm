@@ -12,6 +12,7 @@ export interface BREngineConfig {
   finishedShadowColor: string;
   font: string;
   paddingX: number;
+  paddingBottom: number;
   lineHeight: number;
   initialY: number;
   lineEndDelay: number;

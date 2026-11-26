@@ -3,8 +3,8 @@ import { UIComponent } from './ui_component.ts';
 export class UIOverlay extends UIComponent {
   private showTimer: number | null = null;
 
-  public delay: number = 0;
-  public onUpdateHandler: (overlay: UIOverlay, engine: any) => boolean = () => false;
+  public delay!: number;
+  public onUpdateHandler: (overlay: UIOverlay, engine: any, detail?: any) => boolean = () => false;
 
   static get observedAttributes (): string[] {
     return [...super.observedAttributes, 'delay'];
@@ -30,12 +30,12 @@ export class UIOverlay extends UIComponent {
     }
   }
 
-  public updateUI (): void {
+  public updateUI (detail?: any): void {
     if (!this._engine) {
       return;
     }
 
-    const shouldShow = Boolean(this.onUpdateHandler(this, this._engine));
+    const shouldShow = Boolean(this.onUpdateHandler(this, this._engine, detail));
     this.clearShowTimer();
 
     if (!shouldShow) {
@@ -43,7 +43,7 @@ export class UIOverlay extends UIComponent {
       return;
     }
 
-    const activeDelay = document.hidden ? 0 : (this.delay || Math.max(0, Number(this.getAttribute('delay')) || 0));
+    const activeDelay = document.hidden ? 0 : (this.delay ?? Math.max(0, Number(this.getAttribute('delay')) || 0));
 
     if (activeDelay === 0) {
       this.setAttribute('visible', '');

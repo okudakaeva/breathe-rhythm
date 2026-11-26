@@ -1,4 +1,6 @@
-import { BRColor, BRContext, BREffectType, BREngineConfig } from '../types.ts';
+import { BRColor, BRContext, BREffectType } from '../types.ts';
+import { brDict } from '../br_dictionary.ts';
+
 export interface BRFlowParticle {
   x: number;
   y: number;
@@ -12,6 +14,7 @@ export interface BRFlowParticle {
   lifeWindow: number;
   alphaMax: number;
 }
+
 export interface BRMaskParticle {
   targetX: number;
   targetY: number;
@@ -78,7 +81,25 @@ export interface BRTextDrawOptions {
   pivotY?: number;
 }
 
+const CONFIG = {
+  CORE_RADIUS: 4,
+  DEFAULT_COLOR: '#ffffff',
+  DEFAULT_FONT_SIZE: 28,
+  DEFAULT_PIVOT_Y_OFFSET: 8,
+  SPRITE_PAD_Y_RATIO: 0.9,
+  MIN_OPACITY: 0.01,
+  MIN_ALPHA: 0.005,
+  DEFAULT_DOT_BLUR: 14,
+  CHAR_REVEAL: {
+    spreadRatio: 0.65,
+    startOffset: 0,
+    revealDur: 0.25,
+  },
+} as const;
+
 export class BREffectBase {
+  private static glowDotCache: Map<string, { canvas: HTMLCanvasElement; size: number }> = new Map();
+
   public static clamp01 (v: number): number {
     return Math.max(0, Math.min(1, v));
   }
@@ -93,7 +114,7 @@ export class BREffectBase {
 
   public static extractFontSize (font: string): number {
     const match = font.match(/^(\d+(?:\.\d+)?)px/);
-    return match ? parseFloat(match[1]) : 28;
+    return match ? parseFloat(match[1]) : CONFIG.DEFAULT_FONT_SIZE;
   }
 
   public static fallbackText (
@@ -105,7 +126,9 @@ export class BREffectBase {
       alpha: number
   ): number {
     const width = ctx.measureText(text).width;
+
     this.drawStyledText(ctx, text, { x: startX, y, rgbVal, alpha });
+
     return width;
   }
 
@@ -114,15 +137,16 @@ export class BREffectBase {
 
     if (opts.scale !== undefined && opts.scale !== 1) {
       const px = opts.pivotX ?? opts.x;
-      const py = opts.pivotY ?? opts.y - 8;
+      const py = opts.pivotY ?? opts.y - CONFIG.DEFAULT_PIVOT_Y_OFFSET;
       ctx.translate(px, py);
       ctx.scale(opts.scale, opts.scale);
       ctx.translate(-px, -py);
     }
 
     ctx.fillStyle = `rgba(${ opts.rgbVal }, ${ opts.rgbVal }, ${ opts.rgbVal }, ${ opts.alpha })`;
+
     if (opts.shadowBlur && opts.shadowBlur > 0) {
-      ctx.shadowColor = (opts.shadowColor ?? '#ffffff') as string;
+      ctx.shadowColor = (opts.shadowColor ?? CONFIG.DEFAULT_COLOR) as string;
       ctx.shadowBlur = opts.shadowBlur;
     } else {
       ctx.shadowBlur = 0;
@@ -136,25 +160,28 @@ export class BREffectBase {
       ctx: BRContext,
       font: string,
       text: string,
-      color: string = '#ffffff',
-      glowBlur: number = 16
+      color: string = CONFIG.DEFAULT_COLOR,
+      glowBlur: number = brDict['SPRITE_GLOW_BLUR']
   ): BRTextSprite {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     ctx.font = font;
+
+    const dpr = brDict['DPR'];
     const textWidth = Math.ceil(ctx.measureText(text).width);
     const fontSize = this.extractFontSize(font);
 
-    const padX = 24;
-    const padY = Math.ceil(fontSize * 0.9);
-    const width = Math.max(10, textWidth + padX * 2);
-    const height = Math.max(10, Math.ceil(fontSize * 1.8) + padY * 2);
+    const padX = brDict['SPRITE_PAD_X'];
+    const padY = Math.ceil(fontSize * CONFIG.SPRITE_PAD_Y_RATIO);
+    const width = Math.max(brDict['SPRITE_MIN_SIZE'], textWidth + padX * 2);
+    const height = Math.max(brDict['SPRITE_MIN_SIZE'], Math.ceil(fontSize * brDict['SPRITE_LINE_RATIO']) + padY * 2);
     const baselineY = padY + fontSize;
 
     const buildLayer = (withGlow: boolean): HTMLCanvasElement => {
       const canvas = document.createElement('canvas');
+      const octx = canvas.getContext(brDict['CONTEXT']);
+
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
-      const octx = canvas.getContext('2d');
+
       if (octx) {
         octx.scale(dpr, dpr);
         octx.font = font;
@@ -167,6 +194,7 @@ export class BREffectBase {
         }
         octx.fillText(text, padX, baselineY);
       }
+
       return canvas;
     };
 
@@ -202,8 +230,6 @@ export class BREffectBase {
 
   public static drawTextReveal (
       ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
       text: string,
       startX: number,
       y: number,
@@ -211,29 +237,26 @@ export class BREffectBase {
       baseOpacity: number,
       progress: number,
       revealStart: number,
-      useCubic: boolean = true,
-      glowBlur: number = 0
+      useCubic: boolean = true
   ): void {
     const reveal = this.clamp01((progress - revealStart) / (1 - revealStart));
-    if (reveal <= 0.01) {
+
+    if (reveal <= CONFIG.MIN_OPACITY) {
       return;
     }
 
     const ease = useCubic ? this.easeOutCubic(reveal) : this.easeOutQuad(reveal);
+
     this.drawStyledText(ctx, text, {
       x: startX,
       y,
       rgbVal,
       alpha: baseOpacity * ease,
-      shadowColor: glowBlur > 0 ? config.shadowColor : undefined,
-      shadowBlur: glowBlur > 0 ? (1 - ease) * glowBlur * dpr : 0,
     });
   }
 
   public static drawCharReveal (
       ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
       segment: BRRenderSegment,
       startX: number,
       y: number,
@@ -244,14 +267,13 @@ export class BREffectBase {
         spreadRatio?: number;
         startOffset?: number;
         revealDur?: number;
-        glowBlur?: number;
         alphaMod?: (ease: number) => number;
       } = {}
   ): void {
-    const spreadRatio = opts.spreadRatio ?? 0.65;
-    const startOffset = opts.startOffset ?? 0;
-    const revealDur = opts.revealDur ?? 0.25;
-    const glowBlur = opts.glowBlur ?? 0;
+    const defaults = CONFIG.CHAR_REVEAL;
+    const spreadRatio = opts.spreadRatio ?? defaults.spreadRatio;
+    const startOffset = opts.startOffset ?? defaults.startOffset;
+    const revealDur = opts.revealDur ?? defaults.revealDur;
 
     const chars = Array.from(segment.text);
     const total = Math.max(1, chars.length);
@@ -263,7 +285,7 @@ export class BREffectBase {
       const charStart = (total > 1 ? (c / total) * spreadRatio : 0) + startOffset;
       const charReveal = this.clamp01((progress - charStart) / revealDur);
 
-      if (charReveal > 0.01) {
+      if (charReveal > CONFIG.MIN_OPACITY) {
         const ease = this.easeOutQuad(charReveal);
         const alpha = opts.alphaMod ? opts.alphaMod(ease) : ease;
         this.drawStyledText(ctx, ch, {
@@ -271,8 +293,6 @@ export class BREffectBase {
           y,
           rgbVal,
           alpha: baseOpacity * alpha,
-          shadowColor: glowBlur > 0 ? config.shadowColor : undefined,
-          shadowBlur: glowBlur > 0 ? (1 - ease) * glowBlur * dpr : 0,
         });
       }
 
@@ -297,6 +317,66 @@ export class BREffectBase {
     }
 
     render(grains, textWidth);
+
     return textWidth;
+  }
+
+  public static isMobileViewport (): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.innerWidth < brDict['MOBILE_BREAKPOINT'] || navigator.maxTouchPoints > 0;
+  }
+
+  public static getGlowDot (color: string = CONFIG.DEFAULT_COLOR, blur: number = CONFIG.DEFAULT_DOT_BLUR): { canvas: HTMLCanvasElement; size: number } {
+    const key = `${ color }_${ blur }`;
+    const cached = this.glowDotCache.get(key);
+
+    if (cached) {
+      return cached;
+    }
+
+    const dpr = brDict['DPR'];
+    const size = Math.ceil((CONFIG.CORE_RADIUS + blur) * 2);
+    const canvas = document.createElement('canvas');
+    const octx = canvas.getContext(brDict['CONTEXT']);
+
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+
+    if (octx) {
+      octx.scale(dpr, dpr);
+      octx.fillStyle = color;
+      octx.shadowColor = color;
+      octx.shadowBlur = blur;
+      octx.beginPath();
+      octx.arc(size / 2, size / 2, CONFIG.CORE_RADIUS, 0, Math.PI * 2);
+      octx.fill();
+    }
+
+    const entry = { canvas, size };
+
+    this.glowDotCache.set(key, entry);
+
+    return entry;
+  }
+
+  public static drawGlowDot (
+      ctx: BRContext,
+      dot: { canvas: HTMLCanvasElement; size: number },
+      x: number,
+      y: number,
+      radius: number,
+      alpha: number
+  ): void {
+    if (alpha <= CONFIG.MIN_ALPHA) {
+      return;
+    }
+
+    const drawSize = dot.size * (radius / CONFIG.CORE_RADIUS);
+
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(dot.canvas, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize);
   }
 }

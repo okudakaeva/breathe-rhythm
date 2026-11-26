@@ -1,11 +1,11 @@
-import { BRContext, BREngineConfig } from './types.ts';
+import { BRContext, BREngineConfig } from '../types.ts';
 import { BRParticle } from './br_particle.ts';
-import { BRTags } from './br_tags.ts';
-import { BREffectBase, BRRenderSegment } from './effects/br_effects_base.ts';
-import { BRMaskEffects, BRTextMaskMode } from './effects/br_effects_mask.ts';
-import { BRParticleEffectMode, BRParticleEffects } from './effects/br_effects_particles.ts';
-import { BRSyllabicEffects } from './effects/br_effects_syllabic.ts';
-import { BRSimpleEffects } from './effects/br_effects_simple.ts';
+import { BRTags } from '../br_tags.ts';
+import { BREffectBase, BRRenderSegment } from './br_effects_base.ts';
+import { BRMaskEffects, BRTextMaskMode } from './br_effects_mask.ts';
+import { BRParticleEffectMode, BRParticleEffects } from './br_effects_particles.ts';
+import { BRSyllabicEffects } from './br_effects_syllabic.ts';
+import { BRSimpleEffects } from './br_effects_simple.ts';
 
 export {
   BREffectBase,
@@ -13,7 +13,7 @@ export {
   BRMaskParticle,
   BRWindGustParticle,
   BRTextSprite,
-} from './effects/br_effects_base.ts';
+} from './br_effects_base.ts';
 
 type BRSegmentDrawer = (
     ctx: BRContext,

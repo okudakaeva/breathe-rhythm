@@ -1,6 +1,7 @@
 import { BRContext, BREngineConfig } from '../types.ts';
 import { BRTags } from '../br_tags.ts';
 import { BREffectBase, BRRenderSegment } from './br_effects_base.ts';
+import { brDict } from '../br_dictionary.ts';
 
 interface BRSyllableSliceContext {
   index: number;
@@ -28,6 +29,133 @@ interface BRPulseStyleOptions {
   useBounce?: boolean;
 }
 
+const CONFIG = {
+  DOT_BLUR: 14,
+  MIN_ALPHA: 0.005,
+  MIN_OPACITY: 0.01,
+  PIVOT_Y_OFFSET: 8,
+  SLICE_BLEED: 4,
+
+  SINGLE_SYLLABLE: {
+    glowBlurMax: 20,
+    minScale: 0.85,
+    bounceAmp: 0.04,
+  },
+
+  PULSE_BASE: {
+    defaultSmolderAlpha: 0.42,
+    defaultPauseWeight: 1.3,
+    defaultAccentWeight: 1.35,
+    postStepWeight: 0.9,
+    preStepMinAlpha: 0.25,
+    preStepGlowBounce: 14,
+    preStepGlowPlain: 10,
+    preStepMinScale: 0.8,
+    preStepBounceAmp: 0.05,
+    pauseFadeDrop: 0.1,
+    pauseGlowBlur: 8,
+    pauseDipAmp: 0.02,
+    ignitionPreGlow: 12,
+    accentBaseGlow: 8,
+    accentPeakGlow: 16,
+    accentMinScale: 0.74,
+    accentBounceAmp: 0.09,
+  },
+
+  FIRE: {
+    flameWaves: 2,
+    flameLiftY: 16,
+    smolderAlpha: 0.42,
+    spreadRatio: 0.72,
+    tailCompress: 0.75,
+    waveDelayStep: 0.14,
+    waveEasePower: 2.2,
+    waveReachStep: 0.35,
+    waveScaleBoost: 0.05,
+    waveFadePower: 2.0,
+    waveMaxAlpha: 0.45,
+    waveDriftX: 8,
+    waveScalePivotX: 0.2,
+    waveHeightOffsetRatio: 0.35,
+  },
+
+  PULSE: {
+    smolderAlpha: 0.45,
+    pauseWeight: 1.4,
+    accentWeight: 1.35,
+  },
+
+  RIPPLE: {
+    ringsCount: 3,
+    waveWidth: 48,
+    minTravelDist: 40,
+    travelPad: 30,
+    waveSpeedMult: 1.25,
+    ringDelayStep: 0.14,
+    ringScaleXBoost: 0.08,
+    ringScaleYBoost: 0.22,
+    ringReachStep: 0.3,
+    ringFadePower: 1.6,
+    ringMaxAlpha: 0.45,
+    ringAlphaStep: 0.25,
+    textRevealDur: 0.35,
+    backCrestRatio: 0.3,
+    crestFadeRatio: 0.65,
+    crestLiftY: 7,
+    crestScaleBoost: 0.16,
+    crestGlowBlur: 16,
+  },
+
+  SPARKLE: {
+    defaultCount: 14,
+    minZoneWidth: 12,
+    ignitedCountMult: 2,
+    fadeOutSpeed: 1.4,
+    seedStepPrimary: 73.13,
+    seedStepSecondary: 19.37,
+    seedFreqX: 1.7,
+    seedFreqY: 2.3,
+    seedPhaseMult: 3.1,
+    blinkThreshold: 0.15,
+    blinkPower: 1.8,
+    yBaseRatio: 0.05,
+    ySpreadRatio: 0.72,
+    radiusBase: 0.9,
+    radiusVariants: 3,
+    radiusStep: 0.45,
+    radiusScaleMin: 0.7,
+    radiusScaleBoost: 0.5,
+  },
+
+  ORBIT: {
+    defaultCount: 7,
+    minMobileCount: 4,
+    centerYRatio: 0.35,
+    fadeOutSpeed: 1.2,
+    orbitPadX: 12,
+    orbitPadY: 7,
+    orbitYRatio: 0.48,
+    orbitExpandStart: 1.15,
+    orbitExpandShrink: 0.25,
+    seedStepPrimary: 41.7,
+    seedStepSecondary: 17.3,
+    angleSpeedBase: 0.65,
+    angleSpeedAlt: 0.2,
+    driftFreqX: 1.2,
+    driftAmpX: 3.5,
+    driftFreqY: 1.3,
+    driftAmpY: 3,
+    pulseBase: 0.55,
+    pulseAmp: 0.45,
+    pulseFreq: 6,
+    lifeSpeed: 1.05,
+    maxAlpha: 0.9,
+    radiusBase: 1.35,
+    radiusVariants: 3,
+    radiusStep: 0.4,
+  },
+} as const;
+
 export class BRSyllabicEffects {
   private static getSyllables (segment: BRRenderSegment): string[] {
     return segment.syllables?.length ? segment.syllables : BRTags.splitIntoSyllables(segment.text);
@@ -37,10 +165,13 @@ export class BRSyllabicEffects {
     if (!param) {
       return null;
     }
+
     const parsed = parseInt(param, 10);
+
     if (!Number.isFinite(parsed) || parsed < 1) {
       return null;
     }
+
     return Math.min(totalSyllables, parsed) - 1;
   }
 
@@ -67,10 +198,10 @@ export class BRSyllabicEffects {
       rgbVal,
       alpha: baseOpacity * ease,
       shadowColor: config.shadowColor,
-      shadowBlur: Math.sin(p * Math.PI) * 20 * dpr,
+      shadowBlur: Math.sin(p * Math.PI) * CONFIG.SINGLE_SYLLABLE.glowBlurMax * dpr,
       scale,
       pivotX: startX + textWidth / 2,
-      pivotY: y - 8,
+      pivotY: y - CONFIG.PIVOT_Y_OFFSET,
     });
 
     return textWidth;
@@ -89,7 +220,7 @@ export class BRSyllabicEffects {
       onSlice: (slice: BRSyllableSliceContext) => void
   ): void {
     const count = parts.length;
-    const bleed = 4;
+    const bleed = CONFIG.SLICE_BLEED;
     let cursorX = startX;
     let logicalOffset = 0;
 
@@ -98,7 +229,7 @@ export class BRSyllabicEffects {
       const startThreshold = count > 1 ? (i / count) * spreadRatio : 0;
       const localT = BREffectBase.clamp01((progress - startThreshold) / (1 - startThreshold * tailCompress));
 
-      if (localT > 0.005) {
+      if (localT > CONFIG.MIN_ALPHA) {
         const sprite = segment.sprite;
         const glyphStart = sprite!.padX + logicalOffset;
         const sliceLeft = Math.max(0, glyphStart - bleed);
@@ -132,9 +263,10 @@ export class BRSyllabicEffects {
       baseOpacity: number,
       opts: BRPulseStyleOptions = {}
   ): BRPulseRenderState {
-    const smolderAlpha = opts.smolderAlpha ?? 0.42;
-    const pauseWeight = opts.pauseWeight ?? 1.3;
-    const accentWeight = opts.accentWeight ?? 1.35;
+    const cfg = CONFIG.PULSE_BASE;
+    const smolderAlpha = opts.smolderAlpha ?? cfg.defaultSmolderAlpha;
+    const pauseWeight = opts.pauseWeight ?? cfg.defaultPauseWeight;
+    const accentWeight = opts.accentWeight ?? cfg.defaultAccentWeight;
     const useBounce = opts.useBounce ?? false;
 
     const parts = this.getSyllables(segment);
@@ -148,8 +280,7 @@ export class BRSyllabicEffects {
     const preCount = accentIdx;
     const postCount = count - 1 - accentIdx;
     const actualPauseWeight = hasCustomAccent && preCount > 0 ? pauseWeight : 0;
-    const postStepWeight = 0.9;
-    const totalWeight = preCount + actualPauseWeight + accentWeight + postCount * postStepWeight;
+    const totalWeight = preCount + actualPauseWeight + accentWeight + postCount * cfg.postStepWeight;
 
     const preEnd = preCount / totalWeight;
     const pauseEnd = (preCount + actualPauseWeight) / totalWeight;
@@ -175,16 +306,18 @@ export class BRSyllabicEffects {
         if (i === activeStep) {
           activeX = cursorX;
           activeW = partW;
+
           const ease = BREffectBase.easeOutCubic(stepPhase);
           const pulse = Math.sin(stepPhase * Math.PI);
+
           BREffectBase.drawStyledText(ctx, part, {
             x: cursorX,
             y,
             rgbVal,
-            alpha: baseOpacity * (0.25 + 0.75 * ease),
+            alpha: baseOpacity * (cfg.preStepMinAlpha + (1 - cfg.preStepMinAlpha) * ease),
             shadowColor: config.shadowColor,
-            shadowBlur: pulse * (useBounce ? 14 : 10) * dpr,
-            scale: useBounce ? 0.8 + 0.2 * ease + pulse * 0.05 : 1,
+            shadowBlur: pulse * (useBounce ? cfg.preStepGlowBounce : cfg.preStepGlowPlain) * dpr,
+            scale: useBounce ? cfg.preStepMinScale + (1 - cfg.preStepMinScale) * ease + pulse * cfg.preStepBounceAmp : 1,
             pivotX: cursorX + partW / 2,
           });
         } else {
@@ -195,12 +328,14 @@ export class BRSyllabicEffects {
             alpha: baseOpacity * smolderAlpha,
           });
         }
+
         cursorX += partW;
       }
     } else if (p < pauseEnd && actualPauseWeight > 0) {
       const pauseT = (p - preEnd) / (pauseEnd - preEnd);
       const preText = parts.slice(0, preCount).join('');
       const preW = ctx.measureText(preText).width;
+
       activeStep = Math.max(0, preCount - 1);
       stepPhase = 1;
       activeW = ctx.measureText(parts[activeStep]).width;
@@ -210,15 +345,16 @@ export class BRSyllabicEffects {
         x: startX,
         y,
         rgbVal,
-        alpha: baseOpacity * (smolderAlpha - (useBounce ? pauseT * 0.1 : 0)),
+        alpha: baseOpacity * (smolderAlpha - (useBounce ? pauseT * cfg.pauseFadeDrop : 0)),
         shadowColor: config.shadowColor,
-        shadowBlur: useBounce ? 8 * dpr : 0,
-        scale: useBounce ? 1 - Math.sin(pauseT * Math.PI) * 0.02 : 1,
+        shadowBlur: useBounce ? cfg.pauseGlowBlur * dpr : 0,
+        scale: useBounce ? 1 - Math.sin(pauseT * Math.PI) * cfg.pauseDipAmp : 1,
         pivotX: startX + preW / 2,
       });
     } else if (p < accentEnd) {
       const accentT = (p - pauseEnd) / (accentEnd - pauseEnd);
       const ease = BREffectBase.easeOutCubic(accentT);
+
       ignitionFlash = Math.sin(accentT * Math.PI);
       isIgnited = true;
       activeStep = accentIdx;
@@ -233,12 +369,13 @@ export class BRSyllabicEffects {
           rgbVal,
           alpha: baseOpacity * (smolderAlpha + (1 - smolderAlpha) * ease),
           shadowColor: config.shadowColor,
-          shadowBlur: ignitionFlash * 12 * dpr,
+          shadowBlur: ignitionFlash * cfg.ignitionPreGlow * dpr,
         });
         cursorX += preW;
       }
 
       const accentPart = parts[accentIdx];
+
       activeX = cursorX;
       activeW = segment.syllableWidths?.[accentIdx] ?? ctx.measureText(accentPart).width;
 
@@ -248,19 +385,22 @@ export class BRSyllabicEffects {
         rgbVal,
         alpha: baseOpacity * ease,
         shadowColor: config.shadowColor,
-        shadowBlur: (8 + ignitionFlash * 16) * dpr,
-        scale: useBounce ? 0.74 + 0.26 * ease + ignitionFlash * 0.09 : 1,
+        shadowBlur: (cfg.accentBaseGlow + ignitionFlash * cfg.accentPeakGlow) * dpr,
+        scale: useBounce ? cfg.accentMinScale + (1 - cfg.accentMinScale) * ease + ignitionFlash * cfg.accentBounceAmp : 1,
         pivotX: cursorX + activeW / 2,
       });
     } else {
       isIgnited = true;
+
       const beforePostText = parts.slice(0, accentIdx + 1).join('');
+
       BREffectBase.drawStyledText(ctx, beforePostText, {
         x: startX,
         y,
         rgbVal,
         alpha: baseOpacity,
       });
+
       cursorX += ctx.measureText(beforePostText).width;
       activeStep = accentIdx;
       stepPhase = 1;
@@ -269,6 +409,7 @@ export class BRSyllabicEffects {
         const postP = (p - accentEnd) / (1 - accentEnd);
         const stepFloat = postP * postCount;
         const activePostStep = Math.floor(stepFloat);
+
         stepPhase = stepFloat - activePostStep;
         activeStep = accentIdx + 1 + activePostStep;
 
@@ -276,17 +417,21 @@ export class BRSyllabicEffects {
           const idx = accentIdx + 1 + k;
           const part = parts[idx];
           const partW = segment.syllableWidths?.[idx] ?? ctx.measureText(part).width;
+
           if (k === activePostStep) {
             activeX = cursorX;
             activeW = partW;
           }
+
           const ease = k === activePostStep ? BREffectBase.easeOutCubic(stepPhase) : 1;
+
           BREffectBase.drawStyledText(ctx, part, {
             x: cursorX,
             y,
             rgbVal,
             alpha: baseOpacity * ease,
           });
+
           cursorX += partW;
         }
       }
@@ -298,7 +443,6 @@ export class BRSyllabicEffects {
   // ============================================================================
   // ПУБЛИЧНЫЙ API
   // ============================================================================
-
   public static drawFire (
       ctx: BRContext,
       config: BREngineConfig,
@@ -308,34 +452,37 @@ export class BRSyllabicEffects {
       y: number,
       rgbVal: number,
       baseOpacity: number,
-      flameWaves: number = 2,
-      flameLiftY: number = 16,
-      smolderAlpha: number = 0.42
+      flameWaves: number = CONFIG.FIRE.flameWaves,
+      flameLiftY: number = CONFIG.FIRE.flameLiftY,
+      smolderAlpha: number = CONFIG.FIRE.smolderAlpha
   ): number {
+    const cfg = CONFIG.FIRE;
     const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const sprite = segment.sprite;
     const p = BREffectBase.clamp01(segment.progress);
+
     if (!sprite) {
       return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
     }
 
     const parts = this.getSyllables(segment);
     const fontSize = BREffectBase.extractFontSize(config.font);
+
     ctx.save();
-    this.forEachSyllableSlice(ctx, dpr, segment, parts, startX, y, p, 0.72, 0.75, (s) => {
+    this.forEachSyllableSlice(ctx, dpr, segment, parts, startX, y, p, cfg.spreadRatio, cfg.tailCompress, (s) => {
       for (let w = 0; w < flameWaves; w++) {
-        const waveDelay = w * 0.14;
+        const waveDelay = w * cfg.waveDelayStep;
         const waveT = BREffectBase.clamp01((s.localT - waveDelay) / (1 - waveDelay));
         if (waveT <= 0 || waveT >= 1) {
           continue;
         }
-        const easeWave = 1 - Math.pow(1 - waveT, 2.2);
-        const reachMult = 1 + w * 0.35;
-        const scale = 1 + easeWave * 0.05 * reachMult;
-        const waveAlpha = Math.pow(1 - waveT, 2.0) * (0.45 / (1 + w * 0.35));
-        if (waveAlpha > 0.01) {
-          const waveX = s.drawBaseX + easeWave * 8 * reachMult - (s.sliceLogicalW * (scale - 1)) * 0.2;
-          const waveY = s.drawBaseY - fontSize * 0.35 - easeWave * flameLiftY * reachMult - (sprite.height * (scale - 1)) * 0.5;
+        const easeWave = 1 - Math.pow(1 - waveT, cfg.waveEasePower);
+        const reachMult = 1 + w * cfg.waveReachStep;
+        const scale = 1 + easeWave * cfg.waveScaleBoost * reachMult;
+        const waveAlpha = Math.pow(1 - waveT, cfg.waveFadePower) * (cfg.waveMaxAlpha / (1 + w * cfg.waveReachStep));
+        if (waveAlpha > CONFIG.MIN_OPACITY) {
+          const waveX = s.drawBaseX + easeWave * cfg.waveDriftX * reachMult - (s.sliceLogicalW * (scale - 1)) * cfg.waveScalePivotX;
+          const waveY = s.drawBaseY - fontSize * cfg.waveHeightOffsetRatio - easeWave * flameLiftY * reachMult - (sprite.height * (scale - 1)) * 0.5;
           ctx.globalAlpha = baseOpacity * waveAlpha;
           ctx.drawImage(sprite.glowCanvas, s.srcX, 0, s.srcW, sprite.canvas.height, waveX, waveY, s.sliceLogicalW * scale, sprite.height * scale);
         }
@@ -345,6 +492,7 @@ export class BRSyllabicEffects {
     ctx.save();
     this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, { smolderAlpha });
     ctx.restore();
+
     return fullTextWidth;
   }
 
@@ -357,23 +505,27 @@ export class BRSyllabicEffects {
       y: number,
       rgbVal: number,
       baseOpacity: number,
-      pauseWeight: number = 1.4,
-      accentWeight: number = 1.35
+      pauseWeight: number = CONFIG.PULSE.pauseWeight,
+      accentWeight: number = CONFIG.PULSE.accentWeight
   ): number {
     const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const parts = this.getSyllables(segment);
     const p = BREffectBase.clamp01(segment.progress);
+
     if (parts.length === 1) {
-      return this.drawSingleSyllable(ctx, config, dpr, segment.text, textWidth, p, startX, y, rgbVal, baseOpacity, 0.85, 0.04);
+      const singleCfg = CONFIG.SINGLE_SYLLABLE;
+      return this.drawSingleSyllable(ctx, config, dpr, segment.text, textWidth, p, startX, y, rgbVal, baseOpacity, singleCfg.minScale, singleCfg.bounceAmp);
     }
+
     ctx.save();
     this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, {
-      smolderAlpha: 0.45,
+      smolderAlpha: CONFIG.PULSE.smolderAlpha,
       pauseWeight,
       accentWeight,
       useBounce: true,
     });
     ctx.restore();
+
     return textWidth;
   }
 
@@ -386,9 +538,10 @@ export class BRSyllabicEffects {
       y: number,
       rgbVal: number,
       baseOpacity: number,
-      ringsCount: number = 3,
-      waveWidth: number = 48
+      ringsCount: number = CONFIG.RIPPLE.ringsCount,
+      waveWidth: number = CONFIG.RIPPLE.waveWidth
   ): number {
+    const cfg = CONFIG.RIPPLE;
     const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const parts = this.getSyllables(segment);
     const sprite = segment.sprite;
@@ -398,29 +551,35 @@ export class BRSyllabicEffects {
 
     if (epicentreIdx !== null) {
       let accW = 0;
+
       for (let i = 0; i < epicentreIdx; i++) {
         accW += segment.syllableWidths?.[i] ?? ctx.measureText(parts[i]).width;
       }
+
       epicentreX = accW + (segment.syllableWidths?.[epicentreIdx] ?? ctx.measureText(parts[epicentreIdx]).width) / 2;
     }
 
-    const travelDistance = Math.max(fullTextWidth - epicentreX, 40) + 30;
-    const waveRadius = p * travelDistance * 1.25;
+    const travelDistance = Math.max(fullTextWidth - epicentreX, cfg.minTravelDist) + cfg.travelPad;
+    const waveRadius = p * travelDistance * cfg.waveSpeedMult;
     ctx.save();
+
     if (sprite) {
       for (let ring = 0; ring < ringsCount; ring++) {
-        const ringDelay = ring * 0.14;
+        const ringDelay = ring * cfg.ringDelayStep;
         const ringT = BREffectBase.clamp01((p - ringDelay) / (1 - ringDelay));
+
         if (ringT <= 0 || ringT >= 1) {
           continue;
         }
+
         const easeRing = BREffectBase.easeOutQuad(ringT);
-        const scaleX = 1 + easeRing * 0.08 * (1 + ring * 0.3);
-        const scaleY = 1 + easeRing * 0.22 * (1 + ring * 0.3);
-        const ringAlpha = Math.pow(1 - ringT, 1.6) * (0.45 / (1 + ring * 0.25));
-        if (ringAlpha > 0.01) {
+        const scaleX = 1 + easeRing * cfg.ringScaleXBoost * (1 + ring * cfg.ringReachStep);
+        const scaleY = 1 + easeRing * cfg.ringScaleYBoost * (1 + ring * cfg.ringReachStep);
+        const ringAlpha = Math.pow(1 - ringT, cfg.ringFadePower) * (cfg.ringMaxAlpha / (1 + ring * cfg.ringAlphaStep));
+
+        if (ringAlpha > CONFIG.MIN_OPACITY) {
           const pivotX = startX + epicentreX;
-          const pivotY = y - 8;
+          const pivotY = y - CONFIG.PIVOT_Y_OFFSET;
           ctx.save();
           ctx.translate(pivotX, pivotY);
           ctx.scale(scaleX, scaleY);
@@ -431,8 +590,9 @@ export class BRSyllabicEffects {
         }
       }
     }
+
     const chars = Array.from(segment.text);
-    const baseReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(p / 0.35));
+    const baseReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(p / cfg.textRevealDur));
     let cursorX = startX;
 
     for (let c = 0; c < chars.length; c++) {
@@ -441,28 +601,33 @@ export class BRSyllabicEffects {
       const charCenterRel = (cursorX - startX) + chW / 2;
       const distForward = charCenterRel - epicentreX;
       let crestFactor = 0;
-      if (distForward >= -waveWidth * 0.3) {
+
+      if (distForward >= -waveWidth * cfg.backCrestRatio) {
         const crestDelta = Math.abs(distForward - waveRadius);
+
         if (crestDelta < waveWidth) {
-          crestFactor = Math.cos((crestDelta / waveWidth) * (Math.PI / 2)) * (1 - p * 0.65);
+          crestFactor = Math.cos((crestDelta / waveWidth) * (Math.PI / 2)) * (1 - p * cfg.crestFadeRatio);
         }
       }
-      const liftY = -crestFactor * 7;
-      const scale = 1 + crestFactor * 0.16;
+      const liftY = -crestFactor * cfg.crestLiftY;
+      const scale = 1 + crestFactor * cfg.crestScaleBoost;
+
       BREffectBase.drawStyledText(ctx, ch, {
         x: cursorX,
         y: y + liftY,
         rgbVal,
         alpha: baseOpacity * baseReveal,
         shadowColor: config.shadowColor,
-        shadowBlur: crestFactor * 16 * dpr,
+        shadowBlur: crestFactor * cfg.crestGlowBlur * dpr,
         scale,
         pivotX: cursorX + chW / 2,
-        pivotY: y - 8 + liftY,
+        pivotY: y - CONFIG.PIVOT_Y_OFFSET + liftY,
       });
       cursorX += chW;
     }
+
     ctx.restore();
+
     return fullTextWidth;
   }
 
@@ -475,42 +640,45 @@ export class BRSyllabicEffects {
       y: number,
       rgbVal: number,
       baseOpacity: number,
-      sparklesCount: number = 14
+      sparklesCount: number = CONFIG.SPARKLE.defaultCount
   ): number {
+    const cfg = CONFIG.SPARKLE;
     const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const fontSize = BREffectBase.extractFontSize(config.font);
+
     ctx.save();
+
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
     const zoneX = state.isIgnited ? startX : state.activeX;
-    const zoneW = state.isIgnited ? fullTextWidth : Math.max(12, state.activeW);
-    const count = state.isIgnited ? sparklesCount * 2 : sparklesCount;
-    const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * 1.4) : 1;
+    const zoneW = state.isIgnited ? fullTextWidth : Math.max(cfg.minZoneWidth, state.activeW);
+    const baseCount = BREffectBase.isMobileViewport() ? Math.round(sparklesCount * brDict['MOBILE_PARTICLE_RATIO']) : sparklesCount;
+    const count = state.isIgnited ? baseCount * cfg.ignitedCountMult : baseCount;
+    const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * cfg.fadeOutSpeed) : 1;
 
-    ctx.fillStyle = config.activeTextColor;
-    ctx.shadowColor = config.shadowColor;
-    ctx.shadowBlur = 12 * dpr;
+    if (fadeOut > CONFIG.MIN_OPACITY && zoneW > 0) {
+      const dot = BREffectBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
 
-    if (fadeOut > 0.01 && zoneW > 0) {
       for (let i = 0; i < count; i++) {
-        const seed = (state.activeStep + 1) * 73.13 + i * 19.37;
-        const rx = Math.abs(Math.sin(seed * 1.7));
-        const ry = Math.abs(Math.cos(seed * 2.3));
-        const phase = (seed * 3.1) % (Math.PI * 2);
+        const seed = (state.activeStep + 1) * cfg.seedStepPrimary + i * cfg.seedStepSecondary;
+        const rx = Math.abs(Math.sin(seed * cfg.seedFreqX));
+        const ry = Math.abs(Math.cos(seed * cfg.seedFreqY));
+        const phase = (seed * cfg.seedPhaseMult) % (Math.PI * 2);
         const blink = Math.sin(state.stepPhase * Math.PI * 2 + phase);
-        if (blink <= 0.15) {
+
+        if (blink <= cfg.blinkThreshold) {
           continue;
         }
-        const sparkleAlpha = Math.pow((blink - 0.15) / 0.85, 1.8) * fadeOut;
+
+        const sparkleAlpha = Math.pow((blink - cfg.blinkThreshold) / (1 - cfg.blinkThreshold), cfg.blinkPower) * fadeOut;
         const px = zoneX + rx * zoneW;
-        const py = y - fontSize * (0.05 + ry * 0.72);
-        const radius = (0.9 + (i % 3) * 0.45) * (0.7 + sparkleAlpha * 0.5);
-        ctx.globalAlpha = baseOpacity * sparkleAlpha;
-        ctx.beginPath();
-        ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fill();
+        const py = y - fontSize * (cfg.yBaseRatio + ry * cfg.ySpreadRatio);
+        const radius = (cfg.radiusBase + (i % cfg.radiusVariants) * cfg.radiusStep) * (cfg.radiusScaleMin + sparkleAlpha * cfg.radiusScaleBoost);
+        BREffectBase.drawGlowDot(ctx, dot, px, py, radius, baseOpacity * sparkleAlpha);
       }
     }
+
     ctx.restore();
+
     return fullTextWidth;
   }
 
@@ -523,45 +691,47 @@ export class BRSyllabicEffects {
       y: number,
       rgbVal: number,
       baseOpacity: number,
-      firefliesCount: number = 7
+      firefliesCount: number = CONFIG.ORBIT.defaultCount
   ): number {
+    const cfg = CONFIG.ORBIT;
     const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const fontSize = BREffectBase.extractFontSize(config.font);
+
     ctx.save();
+
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
     const centerX = state.activeX + state.activeW / 2;
-    const centerY = y - fontSize * 0.35;
-    const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * 1.2) : 1;
+    const centerY = y - fontSize * cfg.centerYRatio;
+    const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * cfg.fadeOutSpeed) : 1;
+    const actualCount = BREffectBase.isMobileViewport() ? Math.max(cfg.minMobileCount, Math.round(firefliesCount * brDict['MOBILE_PARTICLE_RATIO'])) : firefliesCount;
 
-    ctx.fillStyle = config.activeTextColor;
-    ctx.shadowColor = config.shadowColor;
-    ctx.shadowBlur = 12 * dpr;
-
-    if (fadeOut > 0.01 && state.activeW > 0) {
+    if (fadeOut > CONFIG.MIN_OPACITY && state.activeW > 0) {
+      const dot = BREffectBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
       const easeIn = BREffectBase.easeOutCubic(state.stepPhase);
-      const orbitRadiusX = (state.activeW * 0.5 + 12) * (1.15 - 0.25 * easeIn);
-      const orbitRadiusY = (fontSize * 0.48 + 7) * (1.15 - 0.25 * easeIn);
+      const orbitRadiusX = (state.activeW * 0.5 + cfg.orbitPadX) * (cfg.orbitExpandStart - cfg.orbitExpandShrink * easeIn);
+      const orbitRadiusY = (fontSize * cfg.orbitYRatio + cfg.orbitPadY) * (cfg.orbitExpandStart - cfg.orbitExpandShrink * easeIn);
 
-      for (let i = 0; i < firefliesCount; i++) {
-        const seed = (state.activeStep + 1) * 41.7 + i * 17.3;
-        const slowAngle = (i / firefliesCount) * Math.PI * 2 + state.stepPhase * (0.65 + (i % 2) * 0.2);
-        const driftX = Math.sin(state.stepPhase * 1.2 + seed) * 3.5;
-        const driftY = Math.cos(state.stepPhase + seed * 1.3) * 3;
+      for (let i = 0; i < actualCount; i++) {
+        const seed = (state.activeStep + 1) * cfg.seedStepPrimary + i * cfg.seedStepSecondary;
+        const slowAngle = (i / actualCount) * Math.PI * 2 + state.stepPhase * (cfg.angleSpeedBase + (i % 2) * cfg.angleSpeedAlt);
+        const driftX = Math.sin(state.stepPhase * cfg.driftFreqX + seed) * cfg.driftAmpX;
+        const driftY = Math.cos(state.stepPhase + seed * cfg.driftFreqY) * cfg.driftAmpY;
         const px = centerX + Math.cos(slowAngle) * orbitRadiusX + driftX;
         const py = centerY + Math.sin(slowAngle) * orbitRadiusY + driftY;
-        const glowPulse = 0.55 + 0.45 * Math.sin(segment.progress * 6 + seed);
-        const lifeAlpha = Math.sin(Math.min(1, state.stepPhase * 1.05) * Math.PI);
-        const particleAlpha = lifeAlpha * fadeOut * glowPulse * 0.9;
-        if (particleAlpha <= 0.01) {
+        const glowPulse = cfg.pulseBase + cfg.pulseAmp * Math.sin(segment.progress * cfg.pulseFreq + seed);
+        const lifeAlpha = Math.sin(Math.min(1, state.stepPhase * cfg.lifeSpeed) * Math.PI);
+        const particleAlpha = lifeAlpha * fadeOut * glowPulse * cfg.maxAlpha;
+
+        if (particleAlpha <= CONFIG.MIN_OPACITY) {
           continue;
         }
-        ctx.globalAlpha = baseOpacity * particleAlpha;
-        ctx.beginPath();
-        ctx.arc(px, py, 1.35 + (i % 3) * 0.4, 0, Math.PI * 2);
-        ctx.fill();
+
+        BREffectBase.drawGlowDot(ctx, dot, px, py, cfg.radiusBase + (i % cfg.radiusVariants) * cfg.radiusStep, baseOpacity * particleAlpha);
       }
     }
+
     ctx.restore();
+
     return fullTextWidth;
   }
 }

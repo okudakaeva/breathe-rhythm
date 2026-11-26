@@ -1,7 +1,12 @@
 export abstract class UIComponent extends HTMLElement {
   protected _engine: any = null;
   protected changeEvent: string = '';
-  private handleStateChange = () => this.updateUI();
+  protected template: string = '';
+
+  private handleStateChange = (e: Event) => {
+    const detail = e instanceof CustomEvent ? e.detail : undefined;
+    this.updateUI(detail);
+  };
 
   static get observedAttributes (): string[] {
     return ['changeevent'];
@@ -19,6 +24,19 @@ export abstract class UIComponent extends HTMLElement {
     }
   }
 
+  protected renderTemplate (useShadow: boolean = false): void {
+    if (!this.template) {
+      return;
+    }
+
+    if (useShadow) {
+      const root = this.shadowRoot || this.attachShadow({ mode: 'open' });
+      root.innerHTML = this.template;
+    } else {
+      this.innerHTML = this.template;
+    }
+  }
+
   public set engine (instance: any) {
     this.syncListener(true);
     this._engine = instance;
@@ -31,6 +49,7 @@ export abstract class UIComponent extends HTMLElement {
   }
 
   public connectedCallback (): void {
+    this.renderTemplate();
     this.updateUI();
   }
 
@@ -47,5 +66,5 @@ export abstract class UIComponent extends HTMLElement {
     }
   }
 
-  public abstract updateUI (): void;
+  public abstract updateUI (detail?: any): void;
 }

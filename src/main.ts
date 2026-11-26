@@ -1,9 +1,10 @@
+import { applyDict, brDict } from './br_dictionary.ts';
 import { BreatheRhythmEngine } from './breathe_rhythm_engine.ts';
-import { UIButton } from './ui/ui_button.ts';
-import { UIIconName } from './ui/ui_icon.ts';
-import { UIOverlay } from './ui/ui_overlay.ts';
-import { UIToolbar } from './ui/ui_toolbar.ts';
+import { UIButton, UIIconName, UIOverlay, UIToolbar } from './ui';
 
+applyDict();
+
+let hasStartedOnce = false;
 const engine = document.getElementById('engine') as BreatheRhythmEngine;
 const controls = document.getElementById('controls') as UIToolbar;
 const startOverlay = document.getElementById('startOverlay') as UIOverlay;
@@ -12,6 +13,7 @@ const btnInitStart = document.getElementById('btnInitStart') as UIButton;
 const btnStart = document.getElementById('btnStart') as UIButton;
 const btnReset = document.getElementById('btnReset') as UIButton;
 const btnResume = document.getElementById('btnResume') as UIButton;
+const required = [engine, controls, startOverlay, pauseOverlay, btnInitStart, btnStart, btnReset, btnResume];
 
 const setButtonIcon = (cmp: UIButton, iconName: UIIconName) => {
   const icon = cmp.querySelector('ui-icon');
@@ -28,8 +30,6 @@ const resetAction = (_btn: HTMLButtonElement, inst: BreatheRhythmEngine) => inst
 const syncReadyState = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
   button.disabled = !instance || !instance.isReady;
 };
-const required = [engine, controls, startOverlay, pauseOverlay, btnInitStart, btnStart, btnReset, btnResume];
-let isInitialBoot = true;
 
 if (required.some(el => !el)) {
   console.error('[Ошибка] Не удалось найти элементы управления в DOM. Проверьте ID в HTML.');
@@ -40,18 +40,31 @@ if (required.some(el => !el)) {
   };
 
   startOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine) => {
+    if (instance?.isRunning) {
+      hasStartedOnce = true;
+    }
+
     const shouldShow = Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
 
     if (shouldShow) {
-      _overlay.delay = isInitialBoot ? 0 : 170;
-      isInitialBoot = false;
+      if (hasStartedOnce) {
+        _overlay.classList.remove('boot-anim');
+        _overlay.querySelector('ui-logo')?.classList.add('no-intro');
+      }
+      _overlay.delay = hasStartedOnce ? 170 : 0;
     }
 
     return shouldShow;
   };
 
-  pauseOverlay.onUpdateHandler = (_overlay: HTMLElement, instance: BreatheRhythmEngine) => {
-    return Boolean(instance && instance.isPaused);
+  pauseOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine, detail?: { reason?: string }) => {
+    const isPaused = Boolean(instance && instance.isPaused);
+    const isInstant = isPaused && (detail?.reason === 'resize' || detail?.reason === 'hidden');
+
+    _overlay.toggleAttribute('instant', isInstant);
+    _overlay.delay = isInstant ? 0 : 350;
+
+    return isPaused;
   };
 
   btnInitStart.onClickHandler = startAction;
@@ -77,17 +90,17 @@ if (required.some(el => !el)) {
   btnStart.onUpdateHandler = (_button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
     if (!instance || !instance.isReady) {
       setButtonIcon(btnStart, 'loader');
-      btnStart.setAttribute('label', 'Загрузка');
+      btnStart.setAttribute('label', brDict['BTN_LOADING']);
       _button.disabled = true;
       return;
     }
 
     _button.disabled = false;
     if (instance.isRunning) {
-      btnStart.setAttribute('label', 'Пауза');
+      btnStart.setAttribute('label', brDict['BTN_PAUSE']);
       setButtonIcon(btnStart, 'pause');
     } else {
-      btnStart.setAttribute('label', 'Старт');
+      btnStart.setAttribute('label', brDict['BTN_START']);
       setButtonIcon(btnStart, 'play');
     }
   };
@@ -95,8 +108,9 @@ if (required.some(el => !el)) {
   btnReset.onClickHandler = resetAction;
   btnReset.onUpdateHandler = syncReadyState;
 
-  document.querySelectorAll<HTMLElement & { engine: BreatheRhythmEngine }>('[changeevent]')
+  document.querySelectorAll<HTMLElement & { engine: BreatheRhythmEngine }>('ui-overlay, ui-toolbar, ui-button')
       .forEach(el => {
+        el.setAttribute('changeevent', brDict['STATE_CHANGE_EVENT']);
         el.engine = engine;
       });
 
