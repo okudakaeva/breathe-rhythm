@@ -1,13 +1,9 @@
 import { BRContext, BREngineConfig } from '../types.ts';
 import { BRParticle } from '../br_particle.ts';
-import {
-  BREffectBase,
-  BRFlowParticle,
-  BRRenderSegment,
-  BRWindGustParticle,
-} from './br_effects_base.ts';
+import { BREffectBase, BRFlowParticle, BRRenderSegment, BRWindGustParticle, } from './br_effects_base.ts';
 
 export type BRParticleEffectMode = 'wind' | 'embers' | 'snow' | 'sparks' | 'dandelion';
+
 export class BRParticleEffects {
 
   // ============================================================================
@@ -46,7 +42,11 @@ export class BRParticleEffects {
     const textWidth = Math.max(40, Math.ceil(ctx.measureText(text).width));
     const fontSize = BREffectBase.extractFontSize(font);
     const gusts: BRWindGustParticle[] = [];
-    const count = Math.min(180, Math.max(65, Math.round(textWidth * 0.45)));
+    const isMobile = BREffectBase.isMobileViewport();
+    const density = isMobile ? 0.28 : 0.45;
+    const maxCount = isMobile ? 100 : 180;
+    const minCount = isMobile ? 40 : 65;
+    const count = Math.min(maxCount, Math.max(minCount, Math.round(textWidth * density)));
 
     for (let i = 0; i < count; i++) {
       const waveIndex = i % Math.max(1, wavesCount);
@@ -85,7 +85,10 @@ export class BRParticleEffects {
       const charProgressRatio = totalChars > 1 ? c / totalChars : 0;
 
       if (ch.trim().length > 0) {
-        const perChar = mode === 'sparks' ? 4 : mode === 'embers' ? 3 : 2;
+        const isMobile = BREffectBase.isMobileViewport();
+        const perChar = isMobile
+            ? (mode === 'sparks' ? 2 : mode === 'embers' ? 2 : 1)
+            : (mode === 'sparks' ? 4 : mode === 'embers' ? 3 : 2);
 
         for (let k = 0; k < perChar; k++) {
           const rx = cursorX + Math.random() * chW;
@@ -178,8 +181,6 @@ export class BRParticleEffects {
     if (segment.gusts && segment.gusts.length > 0) {
       ctx.save();
       ctx.fillStyle = config.activeTextColor;
-      ctx.shadowColor = config.shadowColor;
-      ctx.shadowBlur = 4 * dpr;
 
       for (let i = 0; i < segment.gusts.length; i++) {
         const g = segment.gusts[i];
@@ -221,9 +222,8 @@ export class BRParticleEffects {
           y: 0,
           rgbVal,
           alpha: baseOpacity * ease,
-          shadowColor: config.shadowColor,
-          shadowBlur: (1 - ease) * 16 * dpr,
         });
+
         ctx.restore();
       }
       cursorX += charWidth;
@@ -245,18 +245,16 @@ export class BRParticleEffects {
     const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const p = BREffectBase.clamp01(segment.progress);
 
-    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+    BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
       spreadRatio: 0.6,
       revealDur: 0.25,
-      glowBlur: 18,
     });
 
     const particles = segment.flowParticles;
+
     if (particles && particles.length > 0) {
+      const dot = BREffectBase.getGlowDot(config.activeTextColor, 14);
       ctx.save();
-      ctx.fillStyle = config.activeTextColor;
-      ctx.shadowColor = config.shadowColor;
-      ctx.shadowBlur = 10 * dpr;
 
       for (let i = 0; i < particles.length; i++) {
         const pt = particles[i];
@@ -270,13 +268,12 @@ export class BRParticleEffects {
         const curX = startX + pt.x + pt.vx * ease + swayX;
         const curY = y + pt.y + pt.vy * ease;
         const flicker = 0.7 + 0.3 * Math.sin(p * 24 + pt.phase);
-        ctx.globalAlpha = baseOpacity * pt.alphaMax * Math.sin(localT * Math.PI) * flicker;
-        ctx.beginPath();
-        ctx.arc(curX, curY, pt.size * (1 - localT * 0.4), 0, Math.PI * 2);
-        ctx.fill();
+        const alpha = baseOpacity * pt.alphaMax * Math.sin(localT * Math.PI) * flicker;
+        BREffectBase.drawGlowDot(ctx, dot, curX, curY, pt.size * (1 - localT * 0.4), alpha);
       }
       ctx.restore();
     }
+
     return textWidth;
   }
 
@@ -294,17 +291,14 @@ export class BRParticleEffects {
     const p = BREffectBase.clamp01(segment.progress);
     const particles = segment.flowParticles;
 
-    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+    BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
       spreadRatio: 0.55,
       revealDur: 0.32,
-      glowBlur: 12,
     });
 
     if (particles && particles.length > 0) {
+      const dot = BREffectBase.getGlowDot(config.activeTextColor, 14);
       ctx.save();
-      ctx.fillStyle = config.activeTextColor;
-      ctx.shadowColor = config.shadowColor;
-      ctx.shadowBlur = 6 * dpr;
 
       for (let i = 0; i < particles.length; i++) {
         const pt = particles[i];
@@ -315,13 +309,12 @@ export class BRParticleEffects {
         const swayX = Math.sin(localT * pt.waveFreq + pt.phase) * pt.waveAmp;
         const curX = startX + pt.x + pt.vx * localT + swayX;
         const curY = y + pt.y + pt.vy * localT;
-        ctx.globalAlpha = baseOpacity * pt.alphaMax * Math.sin(localT * Math.PI);
-        ctx.beginPath();
-        ctx.arc(curX, curY, pt.size, 0, Math.PI * 2);
-        ctx.fill();
+        const alpha = baseOpacity * pt.alphaMax * Math.sin(localT * Math.PI);
+        BREffectBase.drawGlowDot(ctx, dot, curX, curY, pt.size, alpha);
       }
       ctx.restore();
     }
+
     return textWidth;
   }
 
@@ -339,18 +332,15 @@ export class BRParticleEffects {
     const p = BREffectBase.clamp01(segment.progress);
     const particles = segment.flowParticles;
 
-    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+    BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
       spreadRatio: 0.65,
       revealDur: 0.18,
-      glowBlur: 20,
     });
 
     if (particles && particles.length > 0) {
       ctx.save();
       ctx.strokeStyle = config.activeTextColor;
       ctx.fillStyle = config.activeTextColor;
-      ctx.shadowColor = config.shadowColor;
-      ctx.shadowBlur = 8 * dpr;
       ctx.lineWidth = 1.1 * dpr;
 
       for (let i = 0; i < particles.length; i++) {
@@ -388,18 +378,16 @@ export class BRParticleEffects {
   ): number {
     const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
     const p = BREffectBase.clamp01(segment.progress);
-    BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
-      spreadRatio: 0.4,
-      revealDur: 0.22,
-      glowBlur: 12,
-    });
     const particles = segment.flowParticles;
 
+    BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
+      spreadRatio: 0.4,
+      revealDur: 0.22,
+    });
+
     if (particles && particles.length > 0) {
+      const dot = BREffectBase.getGlowDot(config.activeTextColor, 14);
       ctx.save();
-      ctx.fillStyle = config.activeTextColor;
-      ctx.shadowColor = config.shadowColor;
-      ctx.shadowBlur = 7 * dpr;
 
       for (let i = 0; i < particles.length; i++) {
         const pt = particles[i];
@@ -411,13 +399,12 @@ export class BRParticleEffects {
         const swayY = Math.sin(localT * pt.waveFreq + pt.phase) * pt.waveAmp;
         const curX = startX + pt.x + pt.vx * ease;
         const curY = y + pt.y + pt.vy * ease + swayY;
-        ctx.globalAlpha = baseOpacity * pt.alphaMax * Math.sin(localT * Math.PI);
-        ctx.beginPath();
-        ctx.arc(curX, curY, pt.size, 0, Math.PI * 2);
-        ctx.fill();
+        const alpha = baseOpacity * pt.alphaMax * Math.sin(localT * Math.PI);
+        BREffectBase.drawGlowDot(ctx, dot, curX, curY, pt.size, alpha);
       }
       ctx.restore();
     }
+
     return textWidth;
   }
 }

@@ -7,17 +7,16 @@ export class BRMaskEffects {
   private static drawMaskParticles (
       ctx: BRContext,
       config: BREngineConfig,
-      dpr: number,
+      _dpr: number,
       grains: BRMaskParticle[],
       startX: number,
       y: number,
       baseOpacity: number,
       calcState: (g: BRMaskParticle) => { localT: number; alpha: number; blur: number; size: number; ease: number } | null
   ): void {
+    const dot = BREffectBase.getGlowDot(config.activeTextColor, 8);
+
     ctx.save();
-    ctx.fillStyle = config.activeTextColor;
-    ctx.shadowColor = config.shadowColor;
-    ctx.shadowBlur = 8 * dpr;
 
     for (let i = 0; i < grains.length; i++) {
       const g = grains[i];
@@ -34,10 +33,7 @@ export class BRMaskEffects {
       const curX = startX + g.startX + dx * state.ease + (-dy / dist) * wave;
       const curY = y + g.startY + dy * state.ease + (dx / dist) * wave;
 
-      ctx.globalAlpha = baseOpacity * state.alpha;
-      ctx.beginPath();
-      ctx.arc(curX, curY, state.size, 0, Math.PI * 2);
-      ctx.fill();
+      BREffectBase.drawGlowDot(ctx, dot, curX, curY, state.size, baseOpacity * state.alpha);
     }
 
     ctx.restore();
@@ -93,6 +89,7 @@ export class BRMaskEffects {
     offscreen.width = maskW;
     offscreen.height = maskH;
     const octx = offscreen.getContext('2d');
+
     if (!octx) {
       return [];
     }
@@ -105,7 +102,8 @@ export class BRMaskEffects {
 
     const imgData = octx.getImageData(0, 0, maskW, maskH).data;
     const grains: BRMaskParticle[] = [];
-    const step = mode === 'constellation' ? 6 : mode === 'fireflies' ? 3 : 2;
+    const baseStep = mode === 'constellation' ? 6 : mode === 'fireflies' ? 3 : 2;
+    const step = BREffectBase.isMobileViewport() ? baseStep + 1 : baseStep;
 
     const frostSeedsCount = Math.max(2, Math.ceil(text.length / 4));
     const frostSeeds: Array<{ x: number; y: number }> = [];
@@ -237,11 +235,10 @@ export class BRMaskEffects {
       travelWindow: number = 0.36
   ): number {
     return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
-      BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, segment.progress, {
+      BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, segment.progress, {
         spreadRatio: 0.55,
         startOffset: 0.22,
         revealDur: 0.28,
-        glowBlur: 18,
       });
 
       this.drawMaskParticles(ctx, config, dpr, grains, startX, y, baseOpacity, (g) => {
@@ -280,8 +277,6 @@ export class BRMaskEffects {
     return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
       BREffectBase.drawTextReveal(
           ctx,
-          config,
-          dpr,
           segment.text,
           startX,
           y,
@@ -290,7 +285,6 @@ export class BRMaskEffects {
           segment.progress,
           revealStart,
           false,
-          14
       );
       const grainFadeOut = BREffectBase.fadeOutWindow(segment.progress, 0.65);
 
@@ -327,7 +321,7 @@ export class BRMaskEffects {
       const p = BREffectBase.clamp01(segment.progress);
       const finalSettle = BREffectBase.easeOutCubic(BREffectBase.clamp01((p - 0.75) / 0.25));
 
-      BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+      BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
         spreadRatio: 0.65,
         revealDur: 0.25,
         alphaMod: (ease) => ease * (0.72 + 0.28 * finalSettle),
@@ -369,12 +363,12 @@ export class BRMaskEffects {
     return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
       const p = BREffectBase.clamp01(segment.progress);
 
-      BREffectBase.drawCharReveal(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity, p, {
+      BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
         spreadRatio: 0.45,
         startOffset: 0.32,
         revealDur: 0.25,
-        glowBlur: 12,
       });
+
       const grainFadeOut = BREffectBase.fadeOutWindow(p, 0.72);
 
       if (grainFadeOut > 0.01) {
@@ -411,7 +405,7 @@ export class BRMaskEffects {
     return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
       const p = BREffectBase.clamp01(segment.progress);
 
-      BREffectBase.drawTextReveal(ctx, config, dpr, segment.text, startX, y, rgbVal, baseOpacity, p, 0.45);
+      BREffectBase.drawTextReveal(ctx, segment.text, startX, y, rgbVal, baseOpacity, p, 0.45);
       const frostFadeOut = BREffectBase.fadeOutWindow(p, 0.72);
 
       if (frostFadeOut > 0.01) {
@@ -448,7 +442,7 @@ export class BRMaskEffects {
     return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
       const p = BREffectBase.clamp01(segment.progress);
 
-      BREffectBase.drawTextReveal(ctx, config, dpr, segment.text, startX, y, rgbVal, baseOpacity, p, 0.55);
+      BREffectBase.drawTextReveal(ctx, segment.text, startX, y, rgbVal, baseOpacity, p, 0.55);
       const fadeOut = BREffectBase.fadeOutWindow(p, 0.75);
 
       if (fadeOut > 0.01) {
@@ -458,8 +452,6 @@ export class BRMaskEffects {
         if (linePhase > 0.01 && links.length > 0) {
           ctx.save();
           ctx.strokeStyle = config.activeTextColor;
-          ctx.shadowColor = config.shadowColor;
-          ctx.shadowBlur = 6 * dpr;
           ctx.lineWidth = 0.8 * dpr;
           ctx.globalAlpha = baseOpacity * linePhase * fadeOut * 0.55;
           ctx.beginPath();

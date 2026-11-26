@@ -483,14 +483,11 @@ export class BRSyllabicEffects {
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
     const zoneX = state.isIgnited ? startX : state.activeX;
     const zoneW = state.isIgnited ? fullTextWidth : Math.max(12, state.activeW);
-    const count = state.isIgnited ? sparklesCount * 2 : sparklesCount;
+    const baseCount = BREffectBase.isMobileViewport() ? Math.round(sparklesCount * 0.65) : sparklesCount;
+    const count = state.isIgnited ? baseCount * 2 : baseCount;
     const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * 1.4) : 1;
-
-    ctx.fillStyle = config.activeTextColor;
-    ctx.shadowColor = config.shadowColor;
-    ctx.shadowBlur = 12 * dpr;
-
     if (fadeOut > 0.01 && zoneW > 0) {
+      const dot = BREffectBase.getGlowDot(config.activeTextColor, 14);
       for (let i = 0; i < count; i++) {
         const seed = (state.activeStep + 1) * 73.13 + i * 19.37;
         const rx = Math.abs(Math.sin(seed * 1.7));
@@ -504,10 +501,7 @@ export class BRSyllabicEffects {
         const px = zoneX + rx * zoneW;
         const py = y - fontSize * (0.05 + ry * 0.72);
         const radius = (0.9 + (i % 3) * 0.45) * (0.7 + sparkleAlpha * 0.5);
-        ctx.globalAlpha = baseOpacity * sparkleAlpha;
-        ctx.beginPath();
-        ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fill();
+        BREffectBase.drawGlowDot(ctx, dot, px, py, radius, baseOpacity * sparkleAlpha);
       }
     }
     ctx.restore();
@@ -532,19 +526,17 @@ export class BRSyllabicEffects {
     const centerX = state.activeX + state.activeW / 2;
     const centerY = y - fontSize * 0.35;
     const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * 1.2) : 1;
-
-    ctx.fillStyle = config.activeTextColor;
-    ctx.shadowColor = config.shadowColor;
-    ctx.shadowBlur = 12 * dpr;
+    const actualCount = BREffectBase.isMobileViewport() ? Math.max(4, Math.round(firefliesCount * 0.7)) : firefliesCount;
 
     if (fadeOut > 0.01 && state.activeW > 0) {
+      const dot = BREffectBase.getGlowDot(config.activeTextColor, 14);
       const easeIn = BREffectBase.easeOutCubic(state.stepPhase);
       const orbitRadiusX = (state.activeW * 0.5 + 12) * (1.15 - 0.25 * easeIn);
       const orbitRadiusY = (fontSize * 0.48 + 7) * (1.15 - 0.25 * easeIn);
 
-      for (let i = 0; i < firefliesCount; i++) {
+      for (let i = 0; i < actualCount; i++) {
         const seed = (state.activeStep + 1) * 41.7 + i * 17.3;
-        const slowAngle = (i / firefliesCount) * Math.PI * 2 + state.stepPhase * (0.65 + (i % 2) * 0.2);
+        const slowAngle = (i / actualCount) * Math.PI * 2 + state.stepPhase * (0.65 + (i % 2) * 0.2);
         const driftX = Math.sin(state.stepPhase * 1.2 + seed) * 3.5;
         const driftY = Math.cos(state.stepPhase + seed * 1.3) * 3;
         const px = centerX + Math.cos(slowAngle) * orbitRadiusX + driftX;
@@ -555,10 +547,7 @@ export class BRSyllabicEffects {
         if (particleAlpha <= 0.01) {
           continue;
         }
-        ctx.globalAlpha = baseOpacity * particleAlpha;
-        ctx.beginPath();
-        ctx.arc(px, py, 1.35 + (i % 3) * 0.4, 0, Math.PI * 2);
-        ctx.fill();
+        BREffectBase.drawGlowDot(ctx, dot, px, py, 1.35 + (i % 3) * 0.4, baseOpacity * particleAlpha);
       }
     }
     ctx.restore();

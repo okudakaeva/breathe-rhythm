@@ -1,5 +1,6 @@
-import { BRColor, BRContext, BREffectType, BREngineConfig } from '../types.ts';
+import { BRColor, BRContext, BREffectType } from '../types.ts';
 import { brDict } from '../br_dictionary.ts';
+
 export interface BRFlowParticle {
   x: number;
   y: number;
@@ -13,6 +14,7 @@ export interface BRFlowParticle {
   lifeWindow: number;
   alphaMax: number;
 }
+
 export interface BRMaskParticle {
   targetX: number;
   targetY: number;
@@ -80,6 +82,8 @@ export interface BRTextDrawOptions {
 }
 
 export class BREffectBase {
+  private static glowDotCache: Map<string, { canvas: HTMLCanvasElement; size: number }> = new Map();
+
   public static clamp01 (v: number): number {
     return Math.max(0, Math.min(1, v));
   }
@@ -203,8 +207,6 @@ export class BREffectBase {
 
   public static drawTextReveal (
       ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
       text: string,
       startX: number,
       y: number,
@@ -212,29 +214,23 @@ export class BREffectBase {
       baseOpacity: number,
       progress: number,
       revealStart: number,
-      useCubic: boolean = true,
-      glowBlur: number = 0
+      useCubic: boolean = true
   ): void {
     const reveal = this.clamp01((progress - revealStart) / (1 - revealStart));
     if (reveal <= 0.01) {
       return;
     }
-
     const ease = useCubic ? this.easeOutCubic(reveal) : this.easeOutQuad(reveal);
     this.drawStyledText(ctx, text, {
       x: startX,
       y,
       rgbVal,
       alpha: baseOpacity * ease,
-      shadowColor: glowBlur > 0 ? config.shadowColor : undefined,
-      shadowBlur: glowBlur > 0 ? (1 - ease) * glowBlur * dpr : 0,
     });
   }
 
   public static drawCharReveal (
       ctx: BRContext,
-      config: BREngineConfig,
-      dpr: number,
       segment: BRRenderSegment,
       startX: number,
       y: number,
@@ -245,14 +241,12 @@ export class BREffectBase {
         spreadRatio?: number;
         startOffset?: number;
         revealDur?: number;
-        glowBlur?: number;
         alphaMod?: (ease: number) => number;
       } = {}
   ): void {
     const spreadRatio = opts.spreadRatio ?? 0.65;
     const startOffset = opts.startOffset ?? 0;
     const revealDur = opts.revealDur ?? 0.25;
-    const glowBlur = opts.glowBlur ?? 0;
 
     const chars = Array.from(segment.text);
     const total = Math.max(1, chars.length);
@@ -272,8 +266,6 @@ export class BREffectBase {
           y,
           rgbVal,
           alpha: baseOpacity * alpha,
-          shadowColor: glowBlur > 0 ? config.shadowColor : undefined,
-          shadowBlur: glowBlur > 0 ? (1 - ease) * glowBlur * dpr : 0,
         });
       }
 
@@ -299,5 +291,58 @@ export class BREffectBase {
 
     render(grains, textWidth);
     return textWidth;
+  }
+
+  public static isMobileViewport (): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return window.innerWidth < brDict['MOBILE_BREAKPOINT'] || navigator.maxTouchPoints > 0;
+  }
+
+  public static getGlowDot (color: string = '#ffffff', blur: number = 14): { canvas: HTMLCanvasElement; size: number } {
+    const key = `${ color }_${ blur }`;
+    const cached = this.glowDotCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const dpr = brDict['DPR'];
+    const coreRadius = 4;
+    const size = Math.ceil((coreRadius + blur) * 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+
+    const octx = canvas.getContext('2d');
+    if (octx) {
+      octx.scale(dpr, dpr);
+      octx.fillStyle = color;
+      octx.shadowColor = color;
+      octx.shadowBlur = blur;
+      octx.beginPath();
+      octx.arc(size / 2, size / 2, coreRadius, 0, Math.PI * 2);
+      octx.fill();
+    }
+
+    const entry = { canvas, size };
+    this.glowDotCache.set(key, entry);
+    return entry;
+  }
+
+  public static drawGlowDot (
+      ctx: BRContext,
+      dot: { canvas: HTMLCanvasElement; size: number },
+      x: number,
+      y: number,
+      radius: number,
+      alpha: number
+  ): void {
+    if (alpha <= 0.005) {
+      return;
+    }
+    const drawSize = dot.size * (radius / 4);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(dot.canvas, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize);
   }
 }

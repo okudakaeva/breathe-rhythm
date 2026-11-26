@@ -229,6 +229,9 @@ export class BRSimpleEffects {
     const mainEase = BREffectBase.easeOutCubic(mainP);
     const mainWaveY = Math.sin(p * Math.PI * 2) * 1.5 * (1 - mainEase);
     this.drawSweepSprite(ctx, dpr, sprite, fullTextWidth, startX, y, mainP, 0, mainWaveY, baseOpacity * (0.35 + 0.65 * mainEase), false, 36);
+    if (mainEase < 0.99) {
+      this.drawSweepSprite(ctx, dpr, sprite, fullTextWidth, startX, y, mainP, 0, mainWaveY, baseOpacity * (1 - mainEase) * 0.85, true, 36);
+    }
 
     ctx.restore();
     return fullTextWidth;
@@ -270,8 +273,6 @@ export class BRSimpleEffects {
           y,
           rgbVal,
           alpha: baseOpacity * ease,
-          shadowColor: config.shadowColor,
-          shadowBlur: (1 - ease) * 14 * dpr,
           scale,
           pivotX: cursorX + chW / 2,
           pivotY: y - 8,
