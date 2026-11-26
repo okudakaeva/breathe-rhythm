@@ -1,5 +1,6 @@
 import { BRContext, BREngineConfig } from './types.ts';
 import { BREffectBase, BREffects, BRRenderSegment } from './br_effects.ts';
+import { brDict } from './br_dictionary.ts';
 
 export interface BRCtxMetrics {
   font: string;
@@ -16,7 +17,6 @@ export interface RenderLine {
   fadeFactor: number;
 }
 
-const SETTLE_DURATION = 200;
 export class BRRenderer {
   private readonly ctx: BRContext;
   private readonly canvas: HTMLCanvasElement;
@@ -59,7 +59,8 @@ export class BRRenderer {
 
   private getTargetScrollY (): number {
     const scrollIndex = Math.min(this.activeLineIdx, Math.max(0, this.lines.length - 1));
-    const availableHeight = this.logicalHeight - this.metrics.initialY - this.metrics.lineHeight * 0.5;
+    const bottomReserve = this.engineConfig.paddingBottom + this.metrics.lineHeight * 0.5;
+    const availableHeight = this.logicalHeight - this.metrics.initialY - bottomReserve;
     const visibleRowsCount = Math.max(1, Math.floor(availableHeight / this.metrics.lineHeight));
     return Math.max(0, (scrollIndex - (visibleRowsCount - 1)) * this.metrics.lineHeight);
   }
@@ -163,7 +164,7 @@ export class BRRenderer {
       } else {
         let segRgb = rgbVal;
         if (seg.tag && seg.finishedAt !== undefined) {
-          const settleT = Math.min(1, (now - seg.finishedAt) / SETTLE_DURATION);
+          const settleT = Math.min(1, (now - seg.finishedAt) / brDict['SETTLE_DURATION']);
           segRgb = Math.round(255 + (rgbVal - 255) * settleT);
         }
 
@@ -198,7 +199,7 @@ export class BRRenderer {
         (this.isFinished && line.fadeFactor < 0.85) ||
         (!this.isFinished && i !== this.activeLineIdx && line.fadeFactor > 0) ||
         line.segments.some(
-            seg => seg.progress < 1 || (seg.finishedAt !== undefined && now - seg.finishedAt < SETTLE_DURATION)
+            seg => seg.progress < 1 || (seg.finishedAt !== undefined && now - seg.finishedAt < brDict['SETTLE_DURATION'])
         )
     );
   }
@@ -267,13 +268,13 @@ export class BRRenderer {
     if (!this.canvas || !this.ctx) {
       return;
     }
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = brDict['DPR'];
     const width = this.logicalWidth;
-    const scale = Math.min(1, width / 768);
-    const fontMatch = this.engineConfig.font.match(/^(\d+(?:.\d+)?)px\s+(.+)$/);
+    const scale = Math.min(1, width / brDict['MOBILE_BREAKPOINT']);
+    const fontMatch = this.engineConfig.font.match(/^(\d+(?:\.\d+)?)px\s+(.+)$/);
     const baseFontSize = fontMatch ? parseFloat(fontMatch[1]) : 28;
     const fontFamily = fontMatch ? fontMatch[2] : '"Courier New", monospace';
-    const paddingX = Math.max(20, Math.round(this.engineConfig.paddingX * scale));
+    const paddingX = Math.max(20, Math.min(this.engineConfig.paddingX, Math.round(width * 0.06)));
     const maxWidth = Math.max(100, width - paddingX * 2);
     let fontSize = Math.max(14, Math.round(baseFontSize * scale));
 
@@ -386,5 +387,9 @@ export class BRRenderer {
       line.segments.length = 0;
     });
     BREffects.reset();
+  }
+
+  public snapScroll (): void {
+    this.currentScrollY = this.getTargetScrollY();
   }
 }

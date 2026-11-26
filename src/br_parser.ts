@@ -27,8 +27,8 @@ export const BR_PARSER_RULES: BRParserRules = {
   separators: [',', ';'],
   colon: [':'],
   pause: {
-    open: '[',
-    close: ']',
+    open: '{',
+    close: '}',
   },
   effect: {
     open: '{',
@@ -133,22 +133,20 @@ export class BRParser {
         }
       }
 
-      if (current === rules.pause.open) {
-        const end = lineStr.indexOf(rules.pause.close, i + 1);
-        if (end !== -1) {
-          const parsed = parseInt(lineStr.substring(i + 1, end), 10);
-          const ms = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-          tokens.push({ type: 'pause', value: '', delay: ms });
-          i = end + 1;
-          continue;
-        }
-      }
+      if (current === rules.pause.open || current === rules.effect.open) {
+        const closeChar = current === rules.pause.open ? rules.pause.close : rules.effect.close;
+        const end = lineStr.indexOf(closeChar, i + 1);
 
-      if (current === rules.effect.open) {
-        const end = lineStr.indexOf(rules.effect.close, i + 1);
         if (end !== -1) {
-          const effect = lineStr.substring(i + 1, end).trim();
-          tokens.push({ type: 'effect', value: effect, delay: 0 });
+          const inner = lineStr.substring(i + 1, end).trim();
+          const isPause = /^\d+$/.test(inner);
+
+          if (isPause) {
+            tokens.push({ type: 'pause', value: '', delay: parseInt(inner, 10) });
+          } else if (inner.length > 0) {
+            tokens.push({ type: 'effect', value: inner, delay: 0 });
+          }
+
           i = end + 1;
           continue;
         }

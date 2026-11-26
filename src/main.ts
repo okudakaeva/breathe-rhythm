@@ -1,8 +1,11 @@
+import { applyDict, brDict } from './br_dictionary.ts';
 import { BreatheRhythmEngine } from './breathe_rhythm_engine.ts';
 import { UIButton } from './ui/ui_button.ts';
 import { UIIconName } from './ui/ui_icon.ts';
 import { UIOverlay } from './ui/ui_overlay.ts';
 import { UIToolbar } from './ui/ui_toolbar.ts';
+
+applyDict();
 
 const engine = document.getElementById('engine') as BreatheRhythmEngine;
 const controls = document.getElementById('controls') as UIToolbar;
@@ -50,8 +53,14 @@ if (required.some(el => !el)) {
     return shouldShow;
   };
 
-  pauseOverlay.onUpdateHandler = (_overlay: HTMLElement, instance: BreatheRhythmEngine) => {
-    return Boolean(instance && instance.isPaused);
+  pauseOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine, detail?: { reason?: string }) => {
+    const isPaused = Boolean(instance && instance.isPaused);
+    const isInstant = isPaused && (detail?.reason === 'resize' || detail?.reason === 'hidden');
+
+    _overlay.toggleAttribute('instant', isInstant);
+    _overlay.delay = isInstant ? 0 : 350;
+
+    return isPaused;
   };
 
   btnInitStart.onClickHandler = startAction;
@@ -77,17 +86,17 @@ if (required.some(el => !el)) {
   btnStart.onUpdateHandler = (_button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
     if (!instance || !instance.isReady) {
       setButtonIcon(btnStart, 'loader');
-      btnStart.setAttribute('label', 'Загрузка');
+      btnStart.setAttribute('label', brDict['BTN_LOADING']);
       _button.disabled = true;
       return;
     }
 
     _button.disabled = false;
     if (instance.isRunning) {
-      btnStart.setAttribute('label', 'Пауза');
+      btnStart.setAttribute('label', brDict['BTN_PAUSE']);
       setButtonIcon(btnStart, 'pause');
     } else {
-      btnStart.setAttribute('label', 'Старт');
+      btnStart.setAttribute('label', brDict['BTN_START']);
       setButtonIcon(btnStart, 'play');
     }
   };
@@ -95,8 +104,9 @@ if (required.some(el => !el)) {
   btnReset.onClickHandler = resetAction;
   btnReset.onUpdateHandler = syncReadyState;
 
-  document.querySelectorAll<HTMLElement & { engine: BreatheRhythmEngine }>('[changeevent]')
+  document.querySelectorAll<HTMLElement & { engine: BreatheRhythmEngine }>('ui-overlay, ui-toolbar, ui-button')
       .forEach(el => {
+        el.setAttribute('changeevent', brDict['STATE_CHANGE_EVENT']);
         el.engine = engine;
       });
 

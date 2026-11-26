@@ -1,4 +1,5 @@
 import { BRColor, BRContext, BREffectType, BREngineConfig } from '../types.ts';
+import { brDict } from '../br_dictionary.ts';
 export interface BRFlowParticle {
   x: number;
   y: number;
@@ -139,7 +140,7 @@ export class BREffectBase {
       color: string = '#ffffff',
       glowBlur: number = 16
   ): BRTextSprite {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = brDict['DPR'];
     ctx.font = font;
     const textWidth = Math.ceil(ctx.measureText(text).width);
     const fontSize = this.extractFontSize(font);

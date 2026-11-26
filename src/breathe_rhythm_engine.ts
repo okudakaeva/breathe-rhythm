@@ -2,6 +2,7 @@ import { BREngineConfig, BRParserConfig, BRToken } from './types.ts';
 import { BRParser, BR_PARSER_CONFIG } from './br_parser.ts';
 import { BRRenderer } from './br_renderer.ts';
 import { BRDelay } from './br_delay.ts';
+import { brDict } from './br_dictionary.ts';
 
 export interface BRPoemPackage {
   meta: { title?: string; author: string };
@@ -28,6 +29,7 @@ const BR_ENGINE_CONFIG: BREngineConfig = {
   finishedShadowColor: '#f0f0f0',
   font: '28px "Courier New", monospace',
   paddingX: 80,
+  paddingBottom: brDict['BTN_SIZE'] + brDict['TOOLBAR_BOTTOM'],
   lineHeight: 60,
   initialY: 70,
   lineEndDelay: 800,
@@ -36,6 +38,7 @@ const BR_ENGINE_CONFIG: BREngineConfig = {
 };
 
 type EnginePhase = 'idle' | 'running' | 'paused' | 'finished';
+type PauseReason = 'user' | 'resize' | 'hidden';
 
 export class BreatheRhythmEngine extends HTMLElement {
   private canvas!: HTMLCanvasElement;
@@ -54,6 +57,7 @@ export class BreatheRhythmEngine extends HTMLElement {
   private parserConfig: BRParserConfig = BR_PARSER_CONFIG;
 
   private _phase: EnginePhase = 'idle';
+  private lastPauseReason: PauseReason = 'user';
 
   constructor () {
     super();
@@ -66,7 +70,10 @@ export class BreatheRhythmEngine extends HTMLElement {
   private set phase (nextPhase: EnginePhase) {
     this._phase = nextPhase;
     this.renderer?.setRunning(nextPhase === 'running');
-    this.dispatchEvent(new CustomEvent('engine-state-change', { bubbles: true }));
+    this.dispatchEvent(new CustomEvent(brDict['STATE_CHANGE_EVENT'], {
+      bubbles: true,
+      detail: { reason: nextPhase === 'paused' ? this.lastPauseReason : undefined },
+    }));
   }
 
   private get abortController (): AbortController | null {
@@ -138,45 +145,32 @@ export class BreatheRhythmEngine extends HTMLElement {
       return;
     }
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.canvas.width = Math.round(window.innerWidth * dpr);
-    this.canvas.height = Math.round(window.innerHeight * dpr);
+    const dpr = brDict['DPR'];
+    const width = this.clientWidth || window.innerWidth;
+    const height = this.clientHeight || window.innerHeight;
+    this.canvas.width = Math.round(width * dpr);
+    this.canvas.height = Math.round(height * dpr);
   }
 
   private boundVisibilityChange = () => {
     if (document.hidden && this.isRunning) {
-      this.pause();
+      this.pause('hidden');
     }
   };
 
   private boundResizeCanvas = () => {
+    if (this.isRunning) {
+      this.pause('resize');
+    }
+
     this.applyCanvasSize();
     this.renderer?.updateResponsiveMetrics();
+    this.renderer?.snapScroll();
     this.renderer?.drawFrame();
   }
 
   private createCanvas (): void {
     this.canvas = document.createElement('canvas');
-
-    Object.assign(this.style, {
-      display: 'block',
-      position: 'absolute',
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: '100dvh',
-      overflow: 'hidden',
-    });
-
-    Object.assign(this.canvas.style, {
-      display: 'block',
-      position: 'absolute',
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: '100dvh',
-      zIndex: '0',
-    });
 
     this.appendChild(this.canvas);
   }
@@ -315,11 +309,12 @@ export class BreatheRhythmEngine extends HTMLElement {
     return this.phase === 'paused';
   }
 
-  public pause (): void {
+  public pause (reason: PauseReason = 'user'): void {
     if (!this.isRunning) {
       return;
     }
 
+    this.lastPauseReason = reason;
     this.abortController?.abort();
   }
 

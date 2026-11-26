@@ -20,6 +20,9 @@
     --btn-size-lg: 92px;
     --icon-size: 24px;
     --icon-size-lg: 38px;
+    --toolbar-bottom: 20px;
+    --toolbar-zone: calc(var(--btn-size) + var(--toolbar-bottom) * 2);
+    --mobile-breakpoint: 768;
 }
 
 body {
@@ -33,6 +36,26 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+}
+
+breathe-rhythm {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100dvw;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+breathe-rhythm > canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0
 }
 
 ui-button::part(ui-button) {
@@ -93,7 +116,7 @@ ui-button.btn-play-large ui-icon svg {
 
 ui-toolbar {
     position: absolute;
-    bottom: 20px;
+    bottom: var(--toolbar-bottom);
     left: 50%;
     transform: translateX(-50%);
     z-index: var(--z-toolbar);
@@ -127,6 +150,14 @@ ui-overlay {
     transition: opacity var(--transition-smooth), visibility var(--transition-smooth);
 }
 
+ui-overlay[instant] {
+    transition: none !important;
+}
+
+ui-overlay[instant] > * {
+    transition: none !important;
+}
+
 ui-overlay[visible] {
     opacity: 1;
     visibility: visible;
@@ -158,6 +189,7 @@ ui-toolbar:not(:defined) {
     text-transform: uppercase;
     text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.65);
     user-select: none;
+    white-space: pre-line;
 }
 
 .screen-subtitle {
@@ -178,7 +210,7 @@ ui-toolbar:not(:defined) {
     user-select: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) { /* --mobile-breakpoint */
     .key-hints {
         margin-top: 18px;
     }

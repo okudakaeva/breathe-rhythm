@@ -1,7 +1,10 @@
 export abstract class UIComponent extends HTMLElement {
   protected _engine: any = null;
   protected changeEvent: string = '';
-  private handleStateChange = () => this.updateUI();
+  private handleStateChange = (e: Event) => {
+    const detail = e instanceof CustomEvent ? e.detail : undefined;
+    this.updateUI(detail);
+  };
 
   static get observedAttributes (): string[] {
     return ['changeevent'];
@@ -47,5 +50,5 @@ export abstract class UIComponent extends HTMLElement {
     }
   }
 
-  public abstract updateUI (): void;
+  public abstract updateUI (detail?: any): void;
 }
