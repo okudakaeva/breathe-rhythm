@@ -1,6 +1,6 @@
 import { BRColor, BRContext } from '../types.ts';
 
-const PARTICLE_CONFIG = {
+const CONFIG = {
   SIZE_MIN: 1,
   SIZE_RANGE: 3,
   SPEED_RANGE: 6,
@@ -24,10 +24,10 @@ export class BRParticle {
   constructor (x: number, y: number, color: BRColor, ctx: BRContext) {
     this.x = x;
     this.y = y;
-    this.size = Math.random() * PARTICLE_CONFIG.SIZE_RANGE + PARTICLE_CONFIG.SIZE_MIN;
-    this.speedX = (Math.random() - 0.5) * PARTICLE_CONFIG.SPEED_RANGE;
-    this.speedY = (Math.random() - 0.5) * PARTICLE_CONFIG.SPEED_RANGE;
-    this.alpha = PARTICLE_CONFIG.INITIAL_ALPHA;
+    this.size = Math.random() * CONFIG.SIZE_RANGE + CONFIG.SIZE_MIN;
+    this.speedX = (Math.random() - 0.5) * CONFIG.SPEED_RANGE;
+    this.speedY = (Math.random() - 0.5) * CONFIG.SPEED_RANGE;
+    this.alpha = CONFIG.INITIAL_ALPHA;
     this.color = color;
     this.ctx = ctx;
   }
@@ -39,12 +39,12 @@ export class BRParticle {
   public update (): void {
     this.x += this.speedX;
     this.y += this.speedY;
-    this.alpha = Math.max(0, this.alpha - PARTICLE_CONFIG.ALPHA_DECAY);
-    this.size *= PARTICLE_CONFIG.SIZE_DECAY;
+    this.alpha = Math.max(0, this.alpha - CONFIG.ALPHA_DECAY);
+    this.size *= CONFIG.SIZE_DECAY;
   }
 
   public isDead (): boolean {
-    return this.alpha <= PARTICLE_CONFIG.DEAD_ALPHA_THRESHOLD;
+    return this.alpha <= CONFIG.DEAD_ALPHA_THRESHOLD;
   }
 
   public draw (): void {
@@ -56,7 +56,7 @@ export class BRParticle {
     this.ctx.globalAlpha = this.alpha;
     this.ctx.fillStyle = this.color;
     this.ctx.beginPath();
-    this.ctx.arc(this.x, this.y, Math.max(PARTICLE_CONFIG.MIN_DRAW_RADIUS, this.size), 0, Math.PI * 2);
+    this.ctx.arc(this.x, this.y, Math.max(CONFIG.MIN_DRAW_RADIUS, this.size), 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.globalAlpha = oldAlpha;
   }

@@ -81,7 +81,21 @@ export interface BRTextDrawOptions {
   pivotY?: number;
 }
 
-const CORE_RADIUS = 4;
+const CONFIG = {
+  CORE_RADIUS: 4,
+  DEFAULT_COLOR: '#ffffff',
+  DEFAULT_FONT_SIZE: 28,
+  DEFAULT_PIVOT_Y_OFFSET: 8,
+  SPRITE_PAD_Y_RATIO: 0.9,
+  MIN_OPACITY: 0.01,
+  MIN_ALPHA: 0.005,
+  DEFAULT_DOT_BLUR: 14,
+  CHAR_REVEAL: {
+    spreadRatio: 0.65,
+    startOffset: 0,
+    revealDur: 0.25,
+  },
+} as const;
 
 export class BREffectBase {
   private static glowDotCache: Map<string, { canvas: HTMLCanvasElement; size: number }> = new Map();
@@ -100,7 +114,7 @@ export class BREffectBase {
 
   public static extractFontSize (font: string): number {
     const match = font.match(/^(\d+(?:\.\d+)?)px/);
-    return match ? parseFloat(match[1]) : 28;
+    return match ? parseFloat(match[1]) : CONFIG.DEFAULT_FONT_SIZE;
   }
 
   public static fallbackText (
@@ -123,7 +137,7 @@ export class BREffectBase {
 
     if (opts.scale !== undefined && opts.scale !== 1) {
       const px = opts.pivotX ?? opts.x;
-      const py = opts.pivotY ?? opts.y - 8;
+      const py = opts.pivotY ?? opts.y - CONFIG.DEFAULT_PIVOT_Y_OFFSET;
       ctx.translate(px, py);
       ctx.scale(opts.scale, opts.scale);
       ctx.translate(-px, -py);
@@ -132,7 +146,7 @@ export class BREffectBase {
     ctx.fillStyle = `rgba(${ opts.rgbVal }, ${ opts.rgbVal }, ${ opts.rgbVal }, ${ opts.alpha })`;
 
     if (opts.shadowBlur && opts.shadowBlur > 0) {
-      ctx.shadowColor = (opts.shadowColor ?? '#ffffff') as string;
+      ctx.shadowColor = (opts.shadowColor ?? CONFIG.DEFAULT_COLOR) as string;
       ctx.shadowBlur = opts.shadowBlur;
     } else {
       ctx.shadowBlur = 0;
@@ -146,7 +160,7 @@ export class BREffectBase {
       ctx: BRContext,
       font: string,
       text: string,
-      color: string = '#ffffff',
+      color: string = CONFIG.DEFAULT_COLOR,
       glowBlur: number = brDict['SPRITE_GLOW_BLUR']
   ): BRTextSprite {
     ctx.font = font;
@@ -156,7 +170,7 @@ export class BREffectBase {
     const fontSize = this.extractFontSize(font);
 
     const padX = brDict['SPRITE_PAD_X'];
-    const padY = Math.ceil(fontSize * 0.9);
+    const padY = Math.ceil(fontSize * CONFIG.SPRITE_PAD_Y_RATIO);
     const width = Math.max(brDict['SPRITE_MIN_SIZE'], textWidth + padX * 2);
     const height = Math.max(brDict['SPRITE_MIN_SIZE'], Math.ceil(fontSize * brDict['SPRITE_LINE_RATIO']) + padY * 2);
     const baselineY = padY + fontSize;
@@ -227,7 +241,7 @@ export class BREffectBase {
   ): void {
     const reveal = this.clamp01((progress - revealStart) / (1 - revealStart));
 
-    if (reveal <= 0.01) {
+    if (reveal <= CONFIG.MIN_OPACITY) {
       return;
     }
 
@@ -256,9 +270,10 @@ export class BREffectBase {
         alphaMod?: (ease: number) => number;
       } = {}
   ): void {
-    const spreadRatio = opts.spreadRatio ?? 0.65;
-    const startOffset = opts.startOffset ?? 0;
-    const revealDur = opts.revealDur ?? 0.25;
+    const defaults = CONFIG.CHAR_REVEAL;
+    const spreadRatio = opts.spreadRatio ?? defaults.spreadRatio;
+    const startOffset = opts.startOffset ?? defaults.startOffset;
+    const revealDur = opts.revealDur ?? defaults.revealDur;
 
     const chars = Array.from(segment.text);
     const total = Math.max(1, chars.length);
@@ -270,7 +285,7 @@ export class BREffectBase {
       const charStart = (total > 1 ? (c / total) * spreadRatio : 0) + startOffset;
       const charReveal = this.clamp01((progress - charStart) / revealDur);
 
-      if (charReveal > 0.01) {
+      if (charReveal > CONFIG.MIN_OPACITY) {
         const ease = this.easeOutQuad(charReveal);
         const alpha = opts.alphaMod ? opts.alphaMod(ease) : ease;
         this.drawStyledText(ctx, ch, {
@@ -314,7 +329,7 @@ export class BREffectBase {
     return window.innerWidth < brDict['MOBILE_BREAKPOINT'] || navigator.maxTouchPoints > 0;
   }
 
-  public static getGlowDot (color: string = '#ffffff', blur: number = 14): { canvas: HTMLCanvasElement; size: number } {
+  public static getGlowDot (color: string = CONFIG.DEFAULT_COLOR, blur: number = CONFIG.DEFAULT_DOT_BLUR): { canvas: HTMLCanvasElement; size: number } {
     const key = `${ color }_${ blur }`;
     const cached = this.glowDotCache.get(key);
 
@@ -323,7 +338,7 @@ export class BREffectBase {
     }
 
     const dpr = brDict['DPR'];
-    const size = Math.ceil((CORE_RADIUS + blur) * 2);
+    const size = Math.ceil((CONFIG.CORE_RADIUS + blur) * 2);
     const canvas = document.createElement('canvas');
     const octx = canvas.getContext(brDict['CONTEXT']);
 
@@ -336,7 +351,7 @@ export class BREffectBase {
       octx.shadowColor = color;
       octx.shadowBlur = blur;
       octx.beginPath();
-      octx.arc(size / 2, size / 2, CORE_RADIUS, 0, Math.PI * 2);
+      octx.arc(size / 2, size / 2, CONFIG.CORE_RADIUS, 0, Math.PI * 2);
       octx.fill();
     }
 
@@ -355,11 +370,11 @@ export class BREffectBase {
       radius: number,
       alpha: number
   ): void {
-    if (alpha <= 0.005) {
+    if (alpha <= CONFIG.MIN_ALPHA) {
       return;
     }
 
-    const drawSize = dot.size * (radius / CORE_RADIUS);
+    const drawSize = dot.size * (radius / CONFIG.CORE_RADIUS);
 
     ctx.globalAlpha = alpha;
     ctx.drawImage(dot.canvas, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize);
