@@ -4,7 +4,7 @@ import { UIButton, UIIconName, UIOverlay, UIToolbar } from './ui';
 
 applyDict();
 
-let hasStartedOnce = false;
+let isIntroPlayed = false;
 const engine = document.getElementById('engine') as BreatheRhythmEngine;
 const controls = document.getElementById('controls') as UIToolbar;
 const startOverlay = document.getElementById('startOverlay') as UIOverlay;
@@ -30,6 +30,18 @@ const resetAction = (_btn: HTMLButtonElement, inst: BreatheRhythmEngine) => inst
 const syncReadyState = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
   button.disabled = !instance || !instance.isReady;
 };
+const runOnVisibleTab = (cb: () => void) => {
+  if (!document.hidden) {
+    cb();
+    return;
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      cb();
+    }
+  }, { once: true });
+};
 
 if (required.some(el => !el)) {
   console.error('[Ошибка] Не удалось найти элементы управления в DOM. Проверьте ID в HTML.');
@@ -40,18 +52,20 @@ if (required.some(el => !el)) {
   };
 
   startOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine) => {
-    if (instance?.isRunning) {
-      hasStartedOnce = true;
-    }
-
     const shouldShow = Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
 
     if (shouldShow) {
-      if (hasStartedOnce) {
-        _overlay.classList.remove('boot-anim');
-        _overlay.querySelector('ui-logo')?.classList.add('no-intro');
+      if (!isIntroPlayed) {
+        _overlay.classList.remove('intro-anim');
+        runOnVisibleTab(() => {
+          if (!isIntroPlayed) {
+            isIntroPlayed = true;
+            _overlay.classList.add('intro-anim');
+          }
+        });
       }
-      _overlay.delay = hasStartedOnce ? 170 : 0;
+
+      _overlay.delay = isIntroPlayed ? 170 : 0;
     }
 
     return shouldShow;

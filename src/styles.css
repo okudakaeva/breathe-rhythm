@@ -287,15 +287,15 @@ ui-logo .char {
     }
 }
 
-ui-logo:not(.no-intro) .dots-left {
+ui-overlay#startOverlay.intro-anim ui-logo .dots-left {
     animation: dotsSlideLeft 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 }
 
-ui-logo:not(.no-intro) .dots-right {
+ui-overlay#startOverlay.intro-anim ui-logo .dots-right {
     animation: dotsSlideRight 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 }
 
-ui-logo:not(.no-intro) .char {
+ui-overlay#startOverlay.intro-anim ui-logo .char {
     animation: charTypeIn 0.35s ease calc(0.35s + var(--i) * 100ms) both;
 }
 
@@ -310,13 +310,12 @@ ui-logo:not(.no-intro) .char {
     }
 }
 
-ui-overlay#startOverlay.boot-anim > * {
+ui-overlay#startOverlay.intro-anim > * {
     transition: none;
 }
 
-
-ui-overlay#startOverlay.boot-anim #btnInitStart,
-ui-overlay#startOverlay.boot-anim .key-hints {
+ui-overlay#startOverlay.intro-anim #btnInitStart,
+ui-overlay#startOverlay.intro-anim .key-hints {
     animation: bootFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.85s both;
 }
 
@@ -373,15 +372,15 @@ ui-subtitle .sub-text {
     }
 }
 
-ui-overlay#startOverlay.boot-anim ui-subtitle {
+ui-overlay#startOverlay.intro-anim ui-subtitle {
     animation: subtitleDockLeft 0.9s ease-in-out 1.3s both;
 }
 
-ui-overlay#startOverlay.boot-anim ui-subtitle .sub-dots-left {
+ui-overlay#startOverlay.intro-anim ui-subtitle .sub-dots-left {
     animation: subDotsOutLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) 2.3s both;
 }
 
-ui-overlay#startOverlay.boot-anim ui-subtitle .sub-dots-right {
+ui-overlay#startOverlay.intro-anim ui-subtitle .sub-dots-right {
     animation: subDotsOutRight 0.8s cubic-bezier(0.22, 1, 0.36, 1) 2.3s both;
 }
 
