@@ -18,7 +18,7 @@ ui-overlay {
   transition: opacity var(--transition-smooth), visibility var(--transition-smooth);
 
   @include m.landscape-compact {
-    gap: 24px;
+    gap: 18px;
   }
 
   > * {

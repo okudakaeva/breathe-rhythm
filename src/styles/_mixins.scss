@@ -17,6 +17,10 @@
   text-transform: uppercase;
   text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.65);
   user-select: none;
+
+  @include landscape-compact {
+    font-size: clamp(28px, 5vw, 36px);
+  }
 }
 
 @mixin subtitle-text {
@@ -29,4 +33,13 @@
   @media (orientation: landscape) and (max-height: 500px) {
     @content;
   }
+}
+
+.visually-hidden { // для скринридеров
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
