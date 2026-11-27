@@ -61,7 +61,7 @@ export class UIApp extends HTMLElement {
     await delay(brDict['INTRO_START_DELAY']);
 
     this.startOverlay
-        .querySelector('ui-subtitle .sub-dots-left')
+        .querySelector(brDict['INTRO_TAIL_SELECTOR'])
         ?.addEventListener('animationend', () => {
           this.introDone();
         }, { once: true });

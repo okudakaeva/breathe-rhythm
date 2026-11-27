@@ -108,6 +108,7 @@ export interface BRDictionary {
   readonly ID_BTN_RESET: string;
   readonly ID_PAUSE_OVERLAY: string;
   readonly ID_BTN_RESUME: string;
+  readonly INTRO_TAIL_SELECTOR: string;
 
   // CSS-токены из :root
   readonly BGR: string;
@@ -240,6 +241,7 @@ const entries = {
   ID_BTN_RESET: 'btnReset',
   ID_PAUSE_OVERLAY: 'pauseOverlay',
   ID_BTN_RESUME: 'btnResume',
+  INTRO_TAIL_SELECTOR: 'ui-subtitle .sub-dots-left .dot:first-child',
 } as const satisfies Omit<BRDictionary, CssTokenKeys>;
 
 const cache = new Map<string, unknown>(Object.entries(entries));
