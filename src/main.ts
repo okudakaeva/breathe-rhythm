@@ -5,7 +5,7 @@ import { delay } from './br_delay.ts';
 
 applyDict();
 
-let isIntroPlayed = false;
+let isIntroDone = false;
 const engine = document.getElementById('engine') as BreatheRhythmEngine;
 const controls = document.getElementById('controls') as UIToolbar;
 const startOverlay = document.getElementById('startOverlay') as UIOverlay;
@@ -54,24 +54,30 @@ if (required.some(el => !el)) {
   startOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine) => {
     const shouldShow = Boolean(instance && !instance.isRunning && !instance.isPaused && !instance.isFinished);
 
-    if (shouldShow) {
-      if (!isIntroPlayed) {
-        _overlay.classList.remove('intro-anim');
-        void (async () => {
-          await delay(brDict['INTRO_START_DELAY']);
-          await runOnVisibleTab();
-
-          if (!isIntroPlayed) {
-            isIntroPlayed = true;
-            _overlay.classList.add('intro-anim');
-          }
-        })();
-      }
-
-      _overlay.delay = isIntroPlayed ? 170 : 0;
+    if (!shouldShow) {
+      return false;
     }
 
-    return shouldShow;
+    if (isIntroDone) {
+      _overlay.classList.remove('intro-done');
+      _overlay.delay = brDict['INTRO_START_DELAY'];
+      return true;
+    }
+
+    if (!_overlay.classList.contains('intro-done')) {
+      void (async () => {
+        await runOnVisibleTab();
+        await delay(brDict['INTRO_START_DELAY']);
+
+        btnInitStart.addEventListener('animationend', () => {
+          isIntroDone = true;
+        }, { once: true });
+        _overlay.classList.add('intro-done');
+        _overlay.setAttribute('visible', '');
+      })();
+    }
+
+    return _overlay.classList.contains('intro-done');
   };
 
   pauseOverlay.onUpdateHandler = (_overlay: UIOverlay, instance: BreatheRhythmEngine, detail?: { reason?: string }) => {
@@ -132,7 +138,7 @@ if (required.some(el => !el)) {
       });
 
   document.addEventListener('keydown', async (e: KeyboardEvent) => {
-    if (e.repeat || !engine.isReady || e.ctrlKey || e.metaKey || e.altKey) {
+    if (!isIntroDone || e.repeat || !engine.isReady || e.ctrlKey || e.metaKey || e.altKey) {
       return;
     }
 
