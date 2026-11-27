@@ -1,0 +1,17 @@
+@use './mixins' as m;
+
+.screen-subtitle {
+  @include m.subtitle-text;
+}
+
+ui-subtitle {
+  .subtitle {
+    @include m.subtitle-text;
+  }
+
+  .sub-dots-left,
+  .sub-dots-right,
+  .sub-text {
+    display: inline-block;
+  }
+}

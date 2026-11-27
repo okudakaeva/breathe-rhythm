@@ -25,18 +25,24 @@ export class UILogo extends UIComponent {
     const bottomWord = bottomRaw.slice(0, -3);
     const bottomDots = bottomRaw.slice(-3);
 
-    const buildChars = (str: string, offset: number) =>
+    const buildChars = (str: string, offset: number = 0) =>
         Array.from(str)
-            .map((ch, i) => `<span class="char" style="--i:${ offset + i }">${ ch }</span>`)
+            .map((ch, i) => `<span class="char" style="--i: ${ offset + i }">${ ch }</span>`)
             .join('');
+
+    const buildDots = (str: string) =>
+        Array.from(str)
+            .map((ch, i) => `<span class="dot" style="--d: ${ i }">${ ch }</span>`)
+            .join('');
+
 
     this.template = `
       <div class="logo" role="heading" aria-level="1">
         <span class="row">
-          <span class="dots-left">${ topDots }</span>${ buildChars(topWord, 0) }
+          <span class="dots-left">${ buildDots(topDots) }</span>${ buildChars(topWord) }
         </span>
         <span class="row">
-          ${ buildChars(bottomWord, topWord.trim().length) }<span class="dots-right">${ bottomDots }</span>
+          ${ buildChars(bottomWord, topWord.trim().length) }<span class="dots-right">${ buildDots(bottomDots) }</span>
         </span>
       </div>
     `;

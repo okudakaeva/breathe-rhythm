@@ -1,0 +1,21 @@
+ui-toolbar {
+  position: absolute;
+  bottom: var(--toolbar-bottom);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toolbar);
+  display: flex;
+  gap: 15px;
+  transition: opacity var(--transition-fast), visibility var(--transition-fast), transform var(--transition-fast);
+
+  &[hidden] {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, 10px);
+  }
+
+  &:not(:defined) {
+    transition: none !important;
+  }
+}

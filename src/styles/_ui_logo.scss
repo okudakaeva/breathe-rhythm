@@ -1,0 +1,22 @@
+@use './mixins' as m;
+
+.screen-title {
+  @include m.neon-title;
+  white-space: pre-line;
+}
+
+ui-logo {
+  @include m.neon-title;
+  display: block;
+
+  .row {
+    display: block;
+  }
+
+  .dots-left,
+  .dots-right,
+  .char,
+  .dot {
+    display: inline-block;
+  }
+}

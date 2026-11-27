@@ -1,0 +1,143 @@
+@use 'sass:list';
+@use './vars' as v;
+@use './mixins' as m;
+
+$dot-steps: (
+    (110px, 55px, 0.55s, 0.00s),
+    (210px, 95px, 0.72s, 0.04s),
+    (330px, 140px, 0.90s, 0.08s),
+);
+
+@keyframes charTypeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dotFlyIn {
+  from {
+    opacity: 0;
+    transform: translateX(var(--dot-x, 0));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bootFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtitleDockLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-120px);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(35px);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(-35px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes subDotsOutLeft {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes subDotsOutRight {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+ui-overlay#startOverlay.intro-done {
+  &[visible] > * {
+    transition: none;
+  }
+
+  ui-logo {
+    .char {
+      animation: charTypeIn 0.35s ease calc(0.35s + var(--i) * 100ms) both;
+    }
+
+    .dot {
+      animation: dotFlyIn var(--dot-dur, 0.7s) v.$ease-out calc(0.1s + var(--dot-delay, 0s)) both;
+    }
+
+    @for $i from 1 through list.length($dot-steps) {
+      $step: list.nth($dot-steps, $i);
+      $dist-desktop: list.nth($step, 1);
+      $dist-mobile: list.nth($step, 2);
+      $dur: list.nth($step, 3);
+      $delay: list.nth($step, 4);
+      $left-idx: list.length($dot-steps) - $i + 1;
+
+      .dots-left .dot:nth-child(#{$left-idx}) {
+        --dot-x: #{-$dist-desktop};
+        --dot-dur: #{$dur};
+        --dot-delay: #{$delay};
+
+        @include m.mobile {
+          --dot-x: #{-$dist-mobile};
+        }
+      }
+
+      .dots-right .dot:nth-child(#{$i}) {
+        --dot-x: #{$dist-desktop};
+        --dot-dur: #{$dur};
+        --dot-delay: #{$delay};
+
+        @include m.mobile {
+          --dot-x: #{$dist-mobile};
+        }
+      }
+    }
+  }
+
+  #btnIntro,
+  .key-hints {
+    animation: bootFadeUp 0.5s v.$ease-out 1.85s both;
+  }
+
+  ui-subtitle {
+    animation: subtitleDockLeft 0.9s ease-in-out 1.3s both;
+
+    .sub-dots-left {
+      animation: subDotsOutLeft 0.8s v.$ease-out 2.3s both;
+    }
+
+    .sub-dots-right {
+      animation: subDotsOutRight 0.8s v.$ease-out 2.3s both;
+    }
+  }
+}
