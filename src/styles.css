@@ -384,10 +384,6 @@ ui-overlay#startOverlay.intro-done ui-subtitle .sub-dots-right {
     animation: subDotsOutRight 0.8s cubic-bezier(0.22, 1, 0.36, 1) 2.3s both;
 }
 
-ui-overlay#startOverlay:not([visible]) * {
-    animation: none !important;
-}
-
 
 
 

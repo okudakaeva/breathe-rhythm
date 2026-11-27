@@ -5,6 +5,7 @@ import { UIButton, UIIconName, UIOverlay, UIToolbar } from './index.ts';
 
 export class UIApp extends HTMLElement {
   private isIntroDone = false;
+  private isIntroStarted = false;
   private abortController: AbortController | null = new AbortController();
   private engine!: BreatheRhythmEngine;
   private controls!: UIToolbar;
@@ -15,8 +16,13 @@ export class UIApp extends HTMLElement {
   private btnReset!: UIButton;
   private btnResume!: UIButton;
 
-  private getByDictId<T extends Element>(key: keyof BRDictionary): T {
-    return this.querySelector<T>(`#${brDict[key]}`)!;
+  private getByDictId<T extends Element> (key: keyof BRDictionary): T {
+    return this.querySelector<T>(`#${ brDict[key] }`)!;
+  }
+
+  private introDone = (): void => {
+    this.startOverlay.classList.remove('intro-done');
+    this.isIntroDone = true;
   }
 
   private setButtonIcon = (cmp: UIButton, iconName: UIIconName): void => {
@@ -29,7 +35,7 @@ export class UIApp extends HTMLElement {
   private startAction = async (_btn: HTMLButtonElement, inst: BreatheRhythmEngine): Promise<void> => {
     if (inst?.isReady) {
       await inst.start();
-      this.isIntroDone = true;
+      this.introDone();
     }
   };
 
@@ -54,9 +60,11 @@ export class UIApp extends HTMLElement {
     await this.runOnVisibleTab();
     await delay(brDict['INTRO_START_DELAY']);
 
-    this.btnIntro.addEventListener('animationend', () => {
-      this.isIntroDone = true;
-    }, { once: true });
+    this.startOverlay
+        .querySelector('ui-subtitle .sub-dots-left')
+        ?.addEventListener('animationend', () => {
+          this.introDone();
+        }, { once: true });
 
     overlay.classList.add('intro-done');
     overlay.setAttribute('visible', '');
@@ -85,12 +93,13 @@ export class UIApp extends HTMLElement {
       }
 
       if (this.isIntroDone) {
-        _overlay.classList.remove('intro-done');
+        this.introDone();
         _overlay.delay = brDict['INTRO_START_DELAY'];
         return true;
       }
 
-      if (!_overlay.classList.contains('intro-done')) {
+      if (!this.isIntroStarted) {
+        this.isIntroStarted = true;
         void this.playIntro(_overlay);
       }
 
