@@ -117,6 +117,7 @@ export interface BRDictionary {
   readonly FONT_MONO: string;
   readonly BTN_SIZE: number;
   readonly BTN_SIZE_LG: number;
+  readonly BTN_SIZE_LG_MOBILE: number;
   readonly TOOLBAR_BOTTOM: number;
 }
 
@@ -130,6 +131,7 @@ type CssTokenKeys =
     | 'FONT_MONO'
     | 'BTN_SIZE'
     | 'BTN_SIZE_LG'
+    | 'BTN_SIZE_LG_MOBILE'
     | 'TOOLBAR_BOTTOM';
 
 const entries = {

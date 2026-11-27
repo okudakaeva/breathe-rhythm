@@ -46,6 +46,11 @@ breathe-rhythm {
     margin-top: 18px;
   }
 
+  @include m.landscape-compact {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
   span {
     display: inline-flex;
     align-items: center;

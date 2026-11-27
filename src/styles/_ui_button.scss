@@ -1,3 +1,5 @@
+@use "./mixins" as m;
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -51,6 +53,11 @@ ui-button {
       &:hover:not(:disabled) {
         box-shadow: 0 0 28px var(--neon);
         transform: scale(1.05);
+      }
+
+      @include m.landscape-compact {
+        width: var(--btn-size-lg-mobile);
+        height: var(--btn-size-lg-mobile);
       }
     }
 
