@@ -1,5 +1,5 @@
 import { BRContext, BREngineConfig } from '../types.ts';
-import { BREffectBase, BRRenderSegment, BRTextSprite } from './br_effects_base.ts';
+import { BRAccentsBase, BRRenderSegment, BRTextSprite } from './br_accents_base.ts';
 import { BRTags } from '../br_tags.ts';
 
 const CONFIG = {
@@ -77,7 +77,7 @@ const CONFIG = {
   },
 } as const;
 
-export class BRSimpleEffects {
+export class BRAccentsSimple {
   private static drawSweepSprite (
       ctx: BRContext,
       dpr: number,
@@ -96,7 +96,7 @@ export class BRSimpleEffects {
       return;
     }
 
-    const easeSweep = BREffectBase.easeOutQuad(progress);
+    const easeSweep = BRAccentsBase.easeOutQuad(progress);
     const revealRight = startX - feather + (fullTextWidth + feather * 2) * easeSweep;
     const clipW = Math.max(0, Math.min(sprite.width, (revealRight - startX) + sprite.padX));
 
@@ -122,7 +122,7 @@ export class BRSimpleEffects {
       tailCompress: number,
       onChar: (step: { index: number; ch: string; chW: number; cursorX: number; logicalOffset: number; localT: number }) => void
   ): number {
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
+    const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
     const chars = Array.from(segment.text);
     const count = Math.max(1, chars.length);
 
@@ -134,7 +134,7 @@ export class BRSimpleEffects {
       const ch = chars[i];
       const chW = segment.charWidths?.[i] ?? ctx.measureText(ch).width;
       const startThreshold = count > 1 ? (i / count) * spreadRatio : 0;
-      const localT = BREffectBase.clamp01((progress - startThreshold) / (1 - startThreshold * tailCompress));
+      const localT = BRAccentsBase.clamp01((progress - startThreshold) / (1 - startThreshold * tailCompress));
 
       if (localT > CONFIG.MIN_ALPHA) {
         onChar({ index: i, ch, chW, cursorX, logicalOffset, localT });
@@ -165,10 +165,10 @@ export class BRSimpleEffects {
   ): number {
     const cfg = CONFIG.ECHO;
     const sprite = segment.sprite;
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
 
     if (!sprite) {
-      return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
+      return BRAccentsBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
     }
 
     return this.forEachCharStep(ctx, segment, startX, p, cfg.spreadRatio, cfg.tailCompress, ({ chW, cursorX, logicalOffset, localT }) => {
@@ -181,14 +181,14 @@ export class BRSimpleEffects {
       const srcW = Math.round(sliceLogicalW * dpr);
       const drawBaseX = cursorX - (glyphStart - sliceLeft);
       const drawBaseY = y - sprite.baselineY;
-      const mainReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(localT / cfg.revealDur));
+      const mainReveal = BRAccentsBase.easeOutCubic(BRAccentsBase.clamp01(localT / cfg.revealDur));
 
       ctx.globalAlpha = baseOpacity * (cfg.baseAlpha + (1 - cfg.baseAlpha) * mainReveal);
       ctx.drawImage(sprite.canvas, srcX, 0, srcW, sprite.canvas.height, drawBaseX, drawBaseY, sliceLogicalW, sprite.height);
 
       for (let e = 0; e < echoPulses.length; e++) {
         const echo = echoPulses[e];
-        const echoT = BREffectBase.clamp01((localT - echo.start) / echo.dur);
+        const echoT = BRAccentsBase.clamp01((localT - echo.start) / echo.dur);
         if (echoT <= 0 || echoT >= 1) {
           continue;
         }
@@ -196,7 +196,7 @@ export class BRSimpleEffects {
         const wave = echoT < cfg.attackRatio
             ? echoT / cfg.attackRatio
             : Math.pow(1 - (echoT - cfg.attackRatio) / (1 - cfg.attackRatio), cfg.decayPower);
-        const expandProgress = BREffectBase.easeOutQuad(echoT);
+        const expandProgress = BRAccentsBase.easeOutQuad(echoT);
 
         for (let ring = 0; ring < cfg.ringsCount; ring++) {
           const ringMult = ring === 0 ? cfg.innerRingScaleMult : 1.0;
@@ -222,12 +222,12 @@ export class BRSimpleEffects {
       baseOpacity: number
   ): number {
     const cfg = CONFIG.MIRROR;
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
 
     return this.forEachCharStep(ctx, segment, startX, p, cfg.spreadRatio, cfg.tailCompress, ({ index, ch, cursorX, localT }) => {
-      const charReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(localT / cfg.revealDur));
+      const charReveal = BRAccentsBase.easeOutCubic(BRAccentsBase.clamp01(localT / cfg.revealDur));
 
-      BREffectBase.drawStyledText(ctx, ch, {
+      BRAccentsBase.drawStyledText(ctx, ch, {
         x: cursorX,
         y,
         rgbVal,
@@ -235,8 +235,8 @@ export class BRSimpleEffects {
       });
 
       const reflectionLife = localT < cfg.fadeOutStart
-          ? BREffectBase.easeOutCubic(localT / cfg.fadeOutStart)
-          : 1 - BREffectBase.easeOutQuad((localT - cfg.fadeOutStart) / (1 - cfg.fadeOutStart));
+          ? BRAccentsBase.easeOutCubic(localT / cfg.fadeOutStart)
+          : 1 - BRAccentsBase.easeOutQuad((localT - cfg.fadeOutStart) / (1 - cfg.fadeOutStart));
 
       if (reflectionLife > CONFIG.MIN_OPACITY) {
         const rippleOffsetY = Math.sin(
@@ -248,7 +248,7 @@ export class BRSimpleEffects {
         ctx.translate(0, reflectionY);
         ctx.scale(1, cfg.scaleY);
 
-        BREffectBase.drawStyledText(ctx, ch, {
+        BRAccentsBase.drawStyledText(ctx, ch, {
           x: cursorX,
           y: 0,
           rgbVal,
@@ -273,12 +273,12 @@ export class BRSimpleEffects {
       maxDriftX: number = CONFIG.WATER.maxDriftX
   ): number {
     const cfg = CONFIG.WATER;
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
+    const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
     const sprite = segment.sprite;
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
 
     if (!sprite) {
-      return BREffectBase.fallbackText(
+      return BRAccentsBase.fallbackText(
           ctx,
           segment.text,
           startX,
@@ -292,13 +292,13 @@ export class BRSimpleEffects {
 
     const syllablesCount = segment.syllables?.length ?? BRTags.splitIntoSyllables(segment.text).length;
     const trailCount = Math.min(maxTrails, Math.max(cfg.minTrails, syllablesCount));
-    const converge = BREffectBase.easeOutCubic(BREffectBase.clamp01((p - cfg.convergeStart) / cfg.convergeDur));
+    const converge = BRAccentsBase.easeOutCubic(BRAccentsBase.clamp01((p - cfg.convergeStart) / cfg.convergeDur));
     const trailDamping = 1 - converge;
 
     for (let t = trailCount - 1; t >= 0; t--) {
       const ratio = (t + 1) / trailCount;
       const lag = ratio * cfg.trailLagStep;
-      const trailP = BREffectBase.clamp01((p - lag) / (1 - lag));
+      const trailP = BRAccentsBase.clamp01((p - lag) / (1 - lag));
 
       if (trailP <= 0) {
         continue;
@@ -324,8 +324,8 @@ export class BRSimpleEffects {
           CONFIG.SWEEP.defaultFeather,
       );
     }
-    const mainP = BREffectBase.clamp01(p / cfg.mainRevealDur);
-    const mainEase = BREffectBase.easeOutCubic(mainP);
+    const mainP = BRAccentsBase.clamp01(p / cfg.mainRevealDur);
+    const mainEase = BRAccentsBase.easeOutCubic(mainP);
     const mainWaveY = Math.sin(p * Math.PI * cfg.mainWaveFreq) * cfg.mainWaveAmp * (1 - mainEase);
 
     this.drawSweepSprite(
@@ -378,14 +378,14 @@ export class BRSimpleEffects {
       overshoot: number = CONFIG.GROW.overshoot
   ): number {
     const cfg = CONFIG.GROW;
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
 
     return this.forEachCharStep(ctx, segment, startX, p, cfg.spreadRatio, cfg.tailCompress, ({ ch, chW, cursorX, localT }) => {
-      const ease = BREffectBase.easeOutCubic(localT);
+      const ease = BRAccentsBase.easeOutCubic(localT);
       const bounce = Math.sin(localT * Math.PI) * overshoot;
       const scale = minScale + (1 - minScale) * ease + bounce;
 
-      BREffectBase.drawStyledText(ctx, ch, {
+      BRAccentsBase.drawStyledText(ctx, ch, {
         x: cursorX,
         y,
         rgbVal,

@@ -1,19 +1,19 @@
 import { BRContext, BREngineConfig } from '../types.ts';
 import { BRParticle } from './br_particle.ts';
 import { BRTags } from '../br_tags.ts';
-import { BREffectBase, BRRenderSegment } from './br_effects_base.ts';
-import { BRMaskEffects, BRTextMaskMode } from './br_effects_mask.ts';
-import { BRParticleEffectMode, BRParticleEffects } from './br_effects_particles.ts';
-import { BRSyllabicEffects } from './br_effects_syllabic.ts';
-import { BRSimpleEffects } from './br_effects_simple.ts';
+import { BRAccentsBase, BRRenderSegment } from './br_accents_base.ts';
+import { BRAccentsMask, BRTextMaskMode } from './br_accents_mask.ts';
+import { BRParticleEffectMode, BRAccentsParticle } from './br_accents_particles.ts';
+import { BRAccentsSyllabic } from './br_accents_syllabic.ts';
+import { BRAccentsSimple } from './br_accents_simple.ts';
 
 export {
-  BREffectBase,
+  BRAccentsBase,
   BRRenderSegment,
   BRMaskParticle,
   BRWindGustParticle,
   BRTextSprite,
-} from './br_effects_base.ts';
+} from './br_accents_base.ts';
 
 type BRSegmentDrawer = (
     ctx: BRContext,
@@ -30,26 +30,26 @@ export class BREffects {
   private static _particles: BRParticle[] = [];
 
   private static readonly drawers: Record<string, BRSegmentDrawer> = {
-    fireflies: (...args) => BRMaskEffects.drawFireflies(...args),
-    sand: (...args) => BRMaskEffects.drawSand(...args),
-    glitter: (...args) => BRMaskEffects.drawShimmer(...args),
-    breeze: (...args) => BRMaskEffects.drawBreeze(...args),
-    frost: (...args) => BRMaskEffects.drawFrost(...args),
-    constellation: (...args) => BRMaskEffects.drawConstellation(...args),
-    wind: (...args) => BRParticleEffects.drawWind(...args),
-    embers: (...args) => BRParticleEffects.drawEmbers(...args),
-    snow: (...args) => BRParticleEffects.drawSnow(...args),
-    sparks: (...args) => BRParticleEffects.drawSparks(...args),
-    dandelion: (...args) => BRParticleEffects.drawDandelion(...args),
-    echo: (...args) => BRSimpleEffects.drawEcho(...args),
-    mirror: (...args) => BRSimpleEffects.drawMirror(...args),
-    water: (...args) => BRSimpleEffects.drawWater(...args),
-    grow: (...args) => BRSimpleEffects.drawGrow(...args),
-    fire: (...args) => BRSyllabicEffects.drawFire(...args),
-    pulse: (...args) => BRSyllabicEffects.drawPulse(...args),
-    ripple: (...args) => BRSyllabicEffects.drawRipple(...args),
-    sparkle: (...args) => BRSyllabicEffects.drawSparkle(...args),
-    orbit: (...args) => BRSyllabicEffects.drawOrbit(...args),
+    fireflies: (...args) => BRAccentsMask.drawFireflies(...args),
+    sand: (...args) => BRAccentsMask.drawSand(...args),
+    glitter: (...args) => BRAccentsMask.drawShimmer(...args),
+    breeze: (...args) => BRAccentsMask.drawBreeze(...args),
+    frost: (...args) => BRAccentsMask.drawFrost(...args),
+    constellation: (...args) => BRAccentsMask.drawConstellation(...args),
+    wind: (...args) => BRAccentsParticle.drawWind(...args),
+    embers: (...args) => BRAccentsParticle.drawEmbers(...args),
+    snow: (...args) => BRAccentsParticle.drawSnow(...args),
+    sparks: (...args) => BRAccentsParticle.drawSparks(...args),
+    dandelion: (...args) => BRAccentsParticle.drawDandelion(...args),
+    echo: (...args) => BRAccentsSimple.drawEcho(...args),
+    mirror: (...args) => BRAccentsSimple.drawMirror(...args),
+    water: (...args) => BRAccentsSimple.drawWater(...args),
+    grow: (...args) => BRAccentsSimple.drawGrow(...args),
+    fire: (...args) => BRAccentsSyllabic.drawFire(...args),
+    pulse: (...args) => BRAccentsSyllabic.drawPulse(...args),
+    ripple: (...args) => BRAccentsSyllabic.drawRipple(...args),
+    sparkle: (...args) => BRAccentsSyllabic.drawSparkle(...args),
+    orbit: (...args) => BRAccentsSyllabic.drawOrbit(...args),
   };
 
   // ============================================================================
@@ -92,17 +92,17 @@ export class BREffects {
 
     switch (type) {
       case 'mask': {
-        segment.grains = BRMaskEffects.sampleTextMask(ctx, font, text, tag as BRTextMaskMode);
+        segment.grains = BRAccentsMask.sampleTextMask(ctx, font, text, tag as BRTextMaskMode);
         if (tag === 'constellation' && segment.grains.length > 0) {
-          segment.constellationLinks = BRMaskEffects.buildConstellationLinks(segment.grains);
+          segment.constellationLinks = BRAccentsMask.buildConstellationLinks(segment.grains);
         }
         break;
       }
       case 'particles': {
         if (tag === 'wind') {
-          segment.gusts = BRParticleEffects.createWindGusts(ctx, font, text);
+          segment.gusts = BRAccentsParticle.createWindGusts(ctx, font, text);
         } else {
-          segment.flowParticles = BRParticleEffects.createFlowParticles(
+          segment.flowParticles = BRAccentsParticle.createFlowParticles(
               ctx,
               font,
               segment,
@@ -112,14 +112,14 @@ export class BREffects {
         break;
       }
       case 'syllabic': {
-        segment.sprite = BREffectBase.createTextSprite(ctx, font, text, activeColor);
+        segment.sprite = BRAccentsBase.createTextSprite(ctx, font, text, activeColor);
         const syllables = BRTags.splitIntoSyllables(text);
         segment.syllables = syllables;
         segment.syllableWidths = syllables.map(s => ctx.measureText(s).width);
         break;
       }
       case 'simple': {
-        segment.sprite = BREffectBase.createTextSprite(ctx, font, text, activeColor);
+        segment.sprite = BRAccentsBase.createTextSprite(ctx, font, text, activeColor);
         break;
       }
     }
@@ -129,7 +129,7 @@ export class BREffects {
 
   public static disposeSegment (segment: BRRenderSegment): void {
     if (segment.sprite) {
-      BREffectBase.disposeTextSprite(segment.sprite);
+      BRAccentsBase.disposeTextSprite(segment.sprite);
       segment.sprite = undefined;
     }
 
@@ -157,7 +157,7 @@ export class BREffects {
       return drawer(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
     }
 
-    return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
+    return BRAccentsBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * segment.progress);
   }
 
   public static triggerFlash (
@@ -167,7 +167,7 @@ export class BREffects {
       spreadX: number,
       count: number = 60
   ): void {
-    this._particles.push(...BRParticleEffects.createFlashParticles(ctx, centerX, centerY, spreadX, count));
+    this._particles.push(...BRAccentsParticle.createFlashParticles(ctx, centerX, centerY, spreadX, count));
   }
 
   public static drawParticles (ctx: BRContext): void {

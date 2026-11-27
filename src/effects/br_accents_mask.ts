@@ -1,5 +1,5 @@
 import { BRContext, BREngineConfig } from '../types.ts';
-import { BREffectBase, BRMaskParticle, BRRenderSegment } from './br_effects_base.ts';
+import { BRAccentsBase, BRMaskParticle, BRRenderSegment } from './br_accents_base.ts';
 import { brDict } from '../br_dictionary.ts';
 
 export type BRTextMaskMode = 'sand' | 'fireflies' | 'glitter' | 'breeze' | 'frost' | 'constellation';
@@ -175,7 +175,7 @@ const CONFIG = {
   },
 } as const;
 
-export class BRMaskEffects {
+export class BRAccentsMask {
   private static drawMaskParticles (
       ctx: BRContext,
       config: BREngineConfig,
@@ -186,7 +186,7 @@ export class BRMaskEffects {
       baseOpacity: number,
       calcState: (g: BRMaskParticle) => { localT: number; alpha: number; blur: number; size: number; ease: number } | null
   ): void {
-    const dot = BREffectBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
+    const dot = BRAccentsBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
 
     ctx.save();
 
@@ -206,7 +206,7 @@ export class BRMaskEffects {
       const curX = startX + g.startX + dx * state.ease + (-dy / dist) * wave;
       const curY = y + g.startY + dy * state.ease + (dx / dist) * wave;
 
-      BREffectBase.drawGlowDot(ctx, dot, curX, curY, state.size, baseOpacity * state.alpha);
+      BRAccentsBase.drawGlowDot(ctx, dot, curX, curY, state.size, baseOpacity * state.alpha);
     }
 
     ctx.restore();
@@ -233,7 +233,7 @@ export class BRMaskEffects {
         }
 
         const maxSpread = Math.max(CONFIG.FROST_SEEDS.minSpread, textWidth / Math.max(1, frostSeeds.length));
-        const distRatio = BREffectBase.clamp01(minDist / maxSpread);
+        const distRatio = BRAccentsBase.clamp01(minDist / maxSpread);
 
         return {
           targetX,
@@ -379,7 +379,7 @@ export class BRMaskEffects {
     ctx.font = font;
 
     const textWidth = Math.ceil(ctx.measureText(text).width);
-    const fontSize = BREffectBase.extractFontSize(font);
+    const fontSize = BRAccentsBase.extractFontSize(font);
     const padY = Math.ceil(fontSize * CONFIG.PAD_Y_RATIO);
     const maskW = Math.max(brDict['SPRITE_MIN_SIZE'], textWidth + CONFIG.PAD_X * 2);
     const maskH = Math.max(brDict['SPRITE_MIN_SIZE'], Math.ceil(fontSize * CONFIG.HEIGHT_RATIO) + padY * 2);
@@ -407,7 +407,7 @@ export class BRMaskEffects {
         : mode === 'fireflies'
             ? CONFIG.SAMPLE_STEP.fireflies
             : CONFIG.SAMPLE_STEP.default;
-    const step = BREffectBase.isMobileViewport() ? baseStep + 1 : baseStep;
+    const step = BRAccentsBase.isMobileViewport() ? baseStep + 1 : baseStep;
     const seedCfg = CONFIG.FROST_SEEDS;
     const frostSeedsCount = Math.max(seedCfg.minSeeds, Math.ceil(text.length / seedCfg.charsPerSeed));
     const frostSeeds: Array<{ x: number; y: number }> = [];
@@ -429,7 +429,7 @@ export class BRMaskEffects {
 
         const targetX = px - CONFIG.PAD_X;
         const targetY = py - baselineY;
-        const xNorm = BREffectBase.clamp01(targetX / Math.max(1, textWidth));
+        const xNorm = BRAccentsBase.clamp01(targetX / Math.max(1, textWidth));
 
         grains.push(this.createParticleForMode(mode, targetX, targetY, xNorm, textWidth, frostSeeds));
       }
@@ -451,15 +451,15 @@ export class BRMaskEffects {
   ): number {
     const cfg = CONFIG.FIREFLIES;
 
-    return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
-      BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, segment.progress, {
+    return BRAccentsBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
+      BRAccentsBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, segment.progress, {
         spreadRatio: cfg.textSpread,
         startOffset: cfg.textStart,
         revealDur: cfg.textRevealDur,
       });
 
       this.drawMaskParticles(ctx, config, dpr, grains, startX, y, baseOpacity, (g) => {
-        const localT = BREffectBase.clamp01((segment.progress - g.delayRatio) / travelWindow);
+        const localT = BRAccentsBase.clamp01((segment.progress - g.delayRatio) / travelWindow);
 
         if (localT <= 0) {
           return null;
@@ -498,8 +498,8 @@ export class BRMaskEffects {
   ): number {
     const cfg = CONFIG.SAND;
 
-    return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
-      BREffectBase.drawTextReveal(
+    return BRAccentsBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
+      BRAccentsBase.drawTextReveal(
           ctx,
           segment.text,
           startX,
@@ -511,16 +511,16 @@ export class BRMaskEffects {
           false,
       );
 
-      const fadeOut = BREffectBase.fadeOutWindow(segment.progress, cfg.fadeOutStart);
+      const fadeOut = BRAccentsBase.fadeOutWindow(segment.progress, cfg.fadeOutStart);
 
       if (fadeOut > CONFIG.MIN_OPACITY) {
         this.drawMaskParticles(ctx, config, dpr, grains, startX, y, baseOpacity, (g) => {
-          const localT = BREffectBase.clamp01((segment.progress - g.delayRatio) / (cfg.travelBase - g.delayRatio * cfg.travelDelayWeight));
+          const localT = BRAccentsBase.clamp01((segment.progress - g.delayRatio) / (cfg.travelBase - g.delayRatio * cfg.travelDelayWeight));
           if (localT <= 0) {
             return null;
           }
 
-          const ease = BREffectBase.easeOutCubic(localT);
+          const ease = BRAccentsBase.easeOutCubic(localT);
 
           return {
             localT,
@@ -546,12 +546,12 @@ export class BRMaskEffects {
   ): number {
     const cfg = CONFIG.SHIMMER;
 
-    return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
-      const p = BREffectBase.clamp01(segment.progress);
-      const finalSettle = BREffectBase.easeOutCubic(BREffectBase.clamp01((p - cfg.settleStart) / cfg.settleDur));
-      const fadeOut = BREffectBase.fadeOutWindow(p, cfg.fadeOutStart);
+    return BRAccentsBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
+      const p = BRAccentsBase.clamp01(segment.progress);
+      const finalSettle = BRAccentsBase.easeOutCubic(BRAccentsBase.clamp01((p - cfg.settleStart) / cfg.settleDur));
+      const fadeOut = BRAccentsBase.fadeOutWindow(p, cfg.fadeOutStart);
 
-      BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
+      BRAccentsBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
         spreadRatio: cfg.textSpread,
         revealDur: cfg.textRevealDur,
         alphaMod: (ease) => ease * (cfg.baseTextAlpha + cfg.settleTextBoost * finalSettle),
@@ -596,11 +596,11 @@ export class BRMaskEffects {
   ): number {
     const cfg = CONFIG.BREEZE;
 
-    return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
-      const p = BREffectBase.clamp01(segment.progress);
-      const fadeOut = BREffectBase.fadeOutWindow(p, cfg.fadeOutStart);
+    return BRAccentsBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
+      const p = BRAccentsBase.clamp01(segment.progress);
+      const fadeOut = BRAccentsBase.fadeOutWindow(p, cfg.fadeOutStart);
 
-      BREffectBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
+      BRAccentsBase.drawCharReveal(ctx, segment, startX, y, rgbVal, baseOpacity, p, {
         spreadRatio: cfg.textSpread,
         startOffset: cfg.textStart,
         revealDur: cfg.textRevealDur,
@@ -608,7 +608,7 @@ export class BRMaskEffects {
 
       if (fadeOut > CONFIG.MIN_OPACITY) {
         this.drawMaskParticles(ctx, config, dpr, grains, startX, y, baseOpacity, (g) => {
-          const localT = BREffectBase.clamp01((p - g.delayRatio) / cfg.travelWindow);
+          const localT = BRAccentsBase.clamp01((p - g.delayRatio) / cfg.travelWindow);
 
           if (localT <= 0) {
             return null;
@@ -641,15 +641,15 @@ export class BRMaskEffects {
   ): number {
     const cfg = CONFIG.FROST;
 
-    return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
-      const p = BREffectBase.clamp01(segment.progress);
-      const fadeOut = BREffectBase.fadeOutWindow(p, cfg.fadeOutStart);
+    return BRAccentsBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
+      const p = BRAccentsBase.clamp01(segment.progress);
+      const fadeOut = BRAccentsBase.fadeOutWindow(p, cfg.fadeOutStart);
 
-      BREffectBase.drawTextReveal(ctx, segment.text, startX, y, rgbVal, baseOpacity, p, cfg.revealStart);
+      BRAccentsBase.drawTextReveal(ctx, segment.text, startX, y, rgbVal, baseOpacity, p, cfg.revealStart);
 
       if (fadeOut > CONFIG.MIN_OPACITY) {
         this.drawMaskParticles(ctx, config, dpr, grains, startX, y, baseOpacity, (g) => {
-          const growT = BREffectBase.clamp01((p - g.delayRatio) / cfg.growDur);
+          const growT = BRAccentsBase.clamp01((p - g.delayRatio) / cfg.growDur);
 
           if (growT <= 0) {
             return null;
@@ -663,7 +663,7 @@ export class BRMaskEffects {
             ease: 1,
             alpha: Math.min(1, growT * cfg.fadeInSpeed) * fadeOut * crystalSpark,
             blur: cfg.blurBase + flash * cfg.blurFlashBoost,
-            size: g.size * (cfg.sizeBase + cfg.sizeGrowBoost * BREffectBase.easeOutCubic(growT) + flash * cfg.sizeFlashBoost),
+            size: g.size * (cfg.sizeBase + cfg.sizeGrowBoost * BRAccentsBase.easeOutCubic(growT) + flash * cfg.sizeFlashBoost),
           };
         });
       }
@@ -683,15 +683,15 @@ export class BRMaskEffects {
   ): number {
     const cfg = CONFIG.CONSTELLATION;
 
-    return BREffectBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
-      const p = BREffectBase.clamp01(segment.progress);
-      const fadeOut = BREffectBase.fadeOutWindow(p, cfg.fadeOutStart);
+    return BRAccentsBase.drawMaskOrFallback(ctx, segment, startX, y, rgbVal, baseOpacity, (grains) => {
+      const p = BRAccentsBase.clamp01(segment.progress);
+      const fadeOut = BRAccentsBase.fadeOutWindow(p, cfg.fadeOutStart);
 
-      BREffectBase.drawTextReveal(ctx, segment.text, startX, y, rgbVal, baseOpacity, p, cfg.revealStart);
+      BRAccentsBase.drawTextReveal(ctx, segment.text, startX, y, rgbVal, baseOpacity, p, cfg.revealStart);
 
       if (fadeOut > CONFIG.MIN_OPACITY) {
-        const linePhase = BREffectBase.clamp01((p - cfg.lineStart) / cfg.lineDur);
-        const links = segment.constellationLinks ?? BRMaskEffects.buildConstellationLinks(grains, maxLinkDist);
+        const linePhase = BRAccentsBase.clamp01((p - cfg.lineStart) / cfg.lineDur);
+        const links = segment.constellationLinks ?? BRAccentsMask.buildConstellationLinks(grains, maxLinkDist);
 
         if (linePhase > CONFIG.MIN_OPACITY && links.length > 0) {
           ctx.save();
@@ -714,14 +714,14 @@ export class BRMaskEffects {
         }
 
         this.drawMaskParticles(ctx, config, dpr, grains, startX, y, baseOpacity, (g) => {
-          const starAppear = BREffectBase.clamp01((p - g.delayRatio) / cfg.starAppearDur);
+          const starAppear = BRAccentsBase.clamp01((p - g.delayRatio) / cfg.starAppearDur);
 
           if (starAppear <= 0) {
             return null;
           }
 
           const twinkle = cfg.twinkleBase + cfg.twinkleAmp * Math.sin(p * g.pulseSpeed + g.phase);
-          const ease = BREffectBase.easeOutCubic(starAppear);
+          const ease = BRAccentsBase.easeOutCubic(starAppear);
 
           return {
             localT: starAppear,

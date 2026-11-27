@@ -1,5 +1,5 @@
 import { BRContext, BREngineConfig } from './types.ts';
-import { BREffectBase, BREffects, BRRenderSegment } from './effects/br_effects.ts';
+import { BRAccentsBase, BREffects, BRRenderSegment } from './effects/br_effects.ts';
 import { brDict } from './br_dictionary.ts';
 
 export interface BRCtxMetrics {
@@ -310,8 +310,8 @@ export class BRRenderer {
         seg.charWidths = undefined;
         seg.syllableWidths = undefined;
         if (seg.sprite && seg.progress < 1) {
-          BREffectBase.disposeTextSprite(seg.sprite);
-          seg.sprite = BREffectBase.createTextSprite(
+          BRAccentsBase.disposeTextSprite(seg.sprite);
+          seg.sprite = BRAccentsBase.createTextSprite(
               this.ctx,
               this.metrics.font,
               seg.text,

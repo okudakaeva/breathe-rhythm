@@ -97,7 +97,7 @@ const CONFIG = {
   },
 } as const;
 
-export class BREffectBase {
+export class BRAccentsBase {
   private static glowDotCache: Map<string, { canvas: HTMLCanvasElement; size: number }> = new Map();
 
   public static clamp01 (v: number): number {

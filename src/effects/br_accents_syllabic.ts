@@ -1,6 +1,6 @@
 import { BRContext, BREngineConfig } from '../types.ts';
 import { BRTags } from '../br_tags.ts';
-import { BREffectBase, BRRenderSegment } from './br_effects_base.ts';
+import { BRAccentsBase, BRRenderSegment } from './br_accents_base.ts';
 import { brDict } from '../br_dictionary.ts';
 
 interface BRSyllableSliceContext {
@@ -156,7 +156,7 @@ const CONFIG = {
   },
 } as const;
 
-export class BRSyllabicEffects {
+export class BRAccentsSyllabic {
   private static getSyllables (segment: BRRenderSegment): string[] {
     return segment.syllables?.length ? segment.syllables : BRTags.splitIntoSyllables(segment.text);
   }
@@ -189,10 +189,10 @@ export class BRSyllabicEffects {
       minScale: number,
       bounceAmp: number
   ): number {
-    const ease = BREffectBase.easeOutCubic(p);
+    const ease = BRAccentsBase.easeOutCubic(p);
     const scale = minScale + (1 - minScale) * ease + Math.sin(p * Math.PI) * bounceAmp;
 
-    BREffectBase.drawStyledText(ctx, text, {
+    BRAccentsBase.drawStyledText(ctx, text, {
       x: startX,
       y,
       rgbVal,
@@ -227,7 +227,7 @@ export class BRSyllabicEffects {
     for (let i = 0; i < count; i++) {
       const partW = segment.syllableWidths?.[i] ?? ctx.measureText(parts[i]).width;
       const startThreshold = count > 1 ? (i / count) * spreadRatio : 0;
-      const localT = BREffectBase.clamp01((progress - startThreshold) / (1 - startThreshold * tailCompress));
+      const localT = BRAccentsBase.clamp01((progress - startThreshold) / (1 - startThreshold * tailCompress));
 
       if (localT > CONFIG.MIN_ALPHA) {
         const sprite = segment.sprite;
@@ -271,7 +271,7 @@ export class BRSyllabicEffects {
 
     const parts = this.getSyllables(segment);
     const count = parts.length;
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
 
     const parsedParam = this.parseSyllableParam(segment.param, count);
     const hasCustomAccent = parsedParam !== null;
@@ -307,10 +307,10 @@ export class BRSyllabicEffects {
           activeX = cursorX;
           activeW = partW;
 
-          const ease = BREffectBase.easeOutCubic(stepPhase);
+          const ease = BRAccentsBase.easeOutCubic(stepPhase);
           const pulse = Math.sin(stepPhase * Math.PI);
 
-          BREffectBase.drawStyledText(ctx, part, {
+          BRAccentsBase.drawStyledText(ctx, part, {
             x: cursorX,
             y,
             rgbVal,
@@ -321,7 +321,7 @@ export class BRSyllabicEffects {
             pivotX: cursorX + partW / 2,
           });
         } else {
-          BREffectBase.drawStyledText(ctx, part, {
+          BRAccentsBase.drawStyledText(ctx, part, {
             x: cursorX,
             y,
             rgbVal,
@@ -341,7 +341,7 @@ export class BRSyllabicEffects {
       activeW = ctx.measureText(parts[activeStep]).width;
       activeX = startX + preW - activeW;
 
-      BREffectBase.drawStyledText(ctx, preText, {
+      BRAccentsBase.drawStyledText(ctx, preText, {
         x: startX,
         y,
         rgbVal,
@@ -353,7 +353,7 @@ export class BRSyllabicEffects {
       });
     } else if (p < accentEnd) {
       const accentT = (p - pauseEnd) / (accentEnd - pauseEnd);
-      const ease = BREffectBase.easeOutCubic(accentT);
+      const ease = BRAccentsBase.easeOutCubic(accentT);
 
       ignitionFlash = Math.sin(accentT * Math.PI);
       isIgnited = true;
@@ -363,7 +363,7 @@ export class BRSyllabicEffects {
       if (preCount > 0) {
         const preText = parts.slice(0, preCount).join('');
         const preW = ctx.measureText(preText).width;
-        BREffectBase.drawStyledText(ctx, preText, {
+        BRAccentsBase.drawStyledText(ctx, preText, {
           x: startX,
           y,
           rgbVal,
@@ -379,7 +379,7 @@ export class BRSyllabicEffects {
       activeX = cursorX;
       activeW = segment.syllableWidths?.[accentIdx] ?? ctx.measureText(accentPart).width;
 
-      BREffectBase.drawStyledText(ctx, accentPart, {
+      BRAccentsBase.drawStyledText(ctx, accentPart, {
         x: cursorX,
         y,
         rgbVal,
@@ -394,7 +394,7 @@ export class BRSyllabicEffects {
 
       const beforePostText = parts.slice(0, accentIdx + 1).join('');
 
-      BREffectBase.drawStyledText(ctx, beforePostText, {
+      BRAccentsBase.drawStyledText(ctx, beforePostText, {
         x: startX,
         y,
         rgbVal,
@@ -423,9 +423,9 @@ export class BRSyllabicEffects {
             activeW = partW;
           }
 
-          const ease = k === activePostStep ? BREffectBase.easeOutCubic(stepPhase) : 1;
+          const ease = k === activePostStep ? BRAccentsBase.easeOutCubic(stepPhase) : 1;
 
-          BREffectBase.drawStyledText(ctx, part, {
+          BRAccentsBase.drawStyledText(ctx, part, {
             x: cursorX,
             y,
             rgbVal,
@@ -457,22 +457,22 @@ export class BRSyllabicEffects {
       smolderAlpha: number = CONFIG.FIRE.smolderAlpha
   ): number {
     const cfg = CONFIG.FIRE;
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
+    const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
     const sprite = segment.sprite;
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
 
     if (!sprite) {
-      return BREffectBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
+      return BRAccentsBase.fallbackText(ctx, segment.text, startX, y, rgbVal, baseOpacity * p);
     }
 
     const parts = this.getSyllables(segment);
-    const fontSize = BREffectBase.extractFontSize(config.font);
+    const fontSize = BRAccentsBase.extractFontSize(config.font);
 
     ctx.save();
     this.forEachSyllableSlice(ctx, dpr, segment, parts, startX, y, p, cfg.spreadRatio, cfg.tailCompress, (s) => {
       for (let w = 0; w < flameWaves; w++) {
         const waveDelay = w * cfg.waveDelayStep;
-        const waveT = BREffectBase.clamp01((s.localT - waveDelay) / (1 - waveDelay));
+        const waveT = BRAccentsBase.clamp01((s.localT - waveDelay) / (1 - waveDelay));
         if (waveT <= 0 || waveT >= 1) {
           continue;
         }
@@ -508,9 +508,9 @@ export class BRSyllabicEffects {
       pauseWeight: number = CONFIG.PULSE.pauseWeight,
       accentWeight: number = CONFIG.PULSE.accentWeight
   ): number {
-    const textWidth = BREffectBase.getSegmentWidth(ctx, segment);
+    const textWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
     const parts = this.getSyllables(segment);
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
 
     if (parts.length === 1) {
       const singleCfg = CONFIG.SINGLE_SYLLABLE;
@@ -542,10 +542,10 @@ export class BRSyllabicEffects {
       waveWidth: number = CONFIG.RIPPLE.waveWidth
   ): number {
     const cfg = CONFIG.RIPPLE;
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
+    const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
     const parts = this.getSyllables(segment);
     const sprite = segment.sprite;
-    const p = BREffectBase.clamp01(segment.progress);
+    const p = BRAccentsBase.clamp01(segment.progress);
     const epicentreIdx = this.parseSyllableParam(segment.param, parts.length);
     let epicentreX = 0;
 
@@ -566,13 +566,13 @@ export class BRSyllabicEffects {
     if (sprite) {
       for (let ring = 0; ring < ringsCount; ring++) {
         const ringDelay = ring * cfg.ringDelayStep;
-        const ringT = BREffectBase.clamp01((p - ringDelay) / (1 - ringDelay));
+        const ringT = BRAccentsBase.clamp01((p - ringDelay) / (1 - ringDelay));
 
         if (ringT <= 0 || ringT >= 1) {
           continue;
         }
 
-        const easeRing = BREffectBase.easeOutQuad(ringT);
+        const easeRing = BRAccentsBase.easeOutQuad(ringT);
         const scaleX = 1 + easeRing * cfg.ringScaleXBoost * (1 + ring * cfg.ringReachStep);
         const scaleY = 1 + easeRing * cfg.ringScaleYBoost * (1 + ring * cfg.ringReachStep);
         const ringAlpha = Math.pow(1 - ringT, cfg.ringFadePower) * (cfg.ringMaxAlpha / (1 + ring * cfg.ringAlphaStep));
@@ -592,7 +592,7 @@ export class BRSyllabicEffects {
     }
 
     const chars = Array.from(segment.text);
-    const baseReveal = BREffectBase.easeOutCubic(BREffectBase.clamp01(p / cfg.textRevealDur));
+    const baseReveal = BRAccentsBase.easeOutCubic(BRAccentsBase.clamp01(p / cfg.textRevealDur));
     let cursorX = startX;
 
     for (let c = 0; c < chars.length; c++) {
@@ -612,7 +612,7 @@ export class BRSyllabicEffects {
       const liftY = -crestFactor * cfg.crestLiftY;
       const scale = 1 + crestFactor * cfg.crestScaleBoost;
 
-      BREffectBase.drawStyledText(ctx, ch, {
+      BRAccentsBase.drawStyledText(ctx, ch, {
         x: cursorX,
         y: y + liftY,
         rgbVal,
@@ -643,20 +643,20 @@ export class BRSyllabicEffects {
       sparklesCount: number = CONFIG.SPARKLE.defaultCount
   ): number {
     const cfg = CONFIG.SPARKLE;
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
-    const fontSize = BREffectBase.extractFontSize(config.font);
+    const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
+    const fontSize = BRAccentsBase.extractFontSize(config.font);
 
     ctx.save();
 
     const state = this.renderSyllabicPulseBase(ctx, config, dpr, segment, startX, y, rgbVal, baseOpacity);
     const zoneX = state.isIgnited ? startX : state.activeX;
     const zoneW = state.isIgnited ? fullTextWidth : Math.max(cfg.minZoneWidth, state.activeW);
-    const baseCount = BREffectBase.isMobileViewport() ? Math.round(sparklesCount * brDict['MOBILE_PARTICLE_RATIO']) : sparklesCount;
+    const baseCount = BRAccentsBase.isMobileViewport() ? Math.round(sparklesCount * brDict['MOBILE_PARTICLE_RATIO']) : sparklesCount;
     const count = state.isIgnited ? baseCount * cfg.ignitedCountMult : baseCount;
     const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * cfg.fadeOutSpeed) : 1;
 
     if (fadeOut > CONFIG.MIN_OPACITY && zoneW > 0) {
-      const dot = BREffectBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
+      const dot = BRAccentsBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
 
       for (let i = 0; i < count; i++) {
         const seed = (state.activeStep + 1) * cfg.seedStepPrimary + i * cfg.seedStepSecondary;
@@ -673,7 +673,7 @@ export class BRSyllabicEffects {
         const px = zoneX + rx * zoneW;
         const py = y - fontSize * (cfg.yBaseRatio + ry * cfg.ySpreadRatio);
         const radius = (cfg.radiusBase + (i % cfg.radiusVariants) * cfg.radiusStep) * (cfg.radiusScaleMin + sparkleAlpha * cfg.radiusScaleBoost);
-        BREffectBase.drawGlowDot(ctx, dot, px, py, radius, baseOpacity * sparkleAlpha);
+        BRAccentsBase.drawGlowDot(ctx, dot, px, py, radius, baseOpacity * sparkleAlpha);
       }
     }
 
@@ -694,8 +694,8 @@ export class BRSyllabicEffects {
       firefliesCount: number = CONFIG.ORBIT.defaultCount
   ): number {
     const cfg = CONFIG.ORBIT;
-    const fullTextWidth = BREffectBase.getSegmentWidth(ctx, segment);
-    const fontSize = BREffectBase.extractFontSize(config.font);
+    const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
+    const fontSize = BRAccentsBase.extractFontSize(config.font);
 
     ctx.save();
 
@@ -703,11 +703,11 @@ export class BRSyllabicEffects {
     const centerX = state.activeX + state.activeW / 2;
     const centerY = y - fontSize * cfg.centerYRatio;
     const fadeOut = state.isIgnited ? Math.max(0, 1 - state.stepPhase * cfg.fadeOutSpeed) : 1;
-    const actualCount = BREffectBase.isMobileViewport() ? Math.max(cfg.minMobileCount, Math.round(firefliesCount * brDict['MOBILE_PARTICLE_RATIO'])) : firefliesCount;
+    const actualCount = BRAccentsBase.isMobileViewport() ? Math.max(cfg.minMobileCount, Math.round(firefliesCount * brDict['MOBILE_PARTICLE_RATIO'])) : firefliesCount;
 
     if (fadeOut > CONFIG.MIN_OPACITY && state.activeW > 0) {
-      const dot = BREffectBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
-      const easeIn = BREffectBase.easeOutCubic(state.stepPhase);
+      const dot = BRAccentsBase.getGlowDot(config.activeTextColor, CONFIG.DOT_BLUR);
+      const easeIn = BRAccentsBase.easeOutCubic(state.stepPhase);
       const orbitRadiusX = (state.activeW * 0.5 + cfg.orbitPadX) * (cfg.orbitExpandStart - cfg.orbitExpandShrink * easeIn);
       const orbitRadiusY = (fontSize * cfg.orbitYRatio + cfg.orbitPadY) * (cfg.orbitExpandStart - cfg.orbitExpandShrink * easeIn);
 
@@ -726,7 +726,7 @@ export class BRSyllabicEffects {
           continue;
         }
 
-        BREffectBase.drawGlowDot(ctx, dot, px, py, cfg.radiusBase + (i % cfg.radiusVariants) * cfg.radiusStep, baseOpacity * particleAlpha);
+        BRAccentsBase.drawGlowDot(ctx, dot, px, py, cfg.radiusBase + (i % cfg.radiusVariants) * cfg.radiusStep, baseOpacity * particleAlpha);
       }
     }
 
