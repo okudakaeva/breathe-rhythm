@@ -1,4 +1,5 @@
 @use 'sass:list';
+@use 'sass:meta';
 @use './vars' as v;
 @use './mixins' as m;
 
@@ -25,8 +26,8 @@ $sub-dot-steps: (
     $delay: list.nth($step, 4);
     $left-idx: $len - $i + 1;
 
-    $dir-left: if($invert, 1, -1);
-    $dir-right: if($invert, -1, 1);
+    $dir-left: if(sass($invert): 1; else: -1);
+    $dir-right: if(sass($invert): -1; else: 1);
 
     .dots-left .dot:nth-child(#{$left-idx}),
     .sub-dots-left .dot:nth-child(#{$left-idx}) {
