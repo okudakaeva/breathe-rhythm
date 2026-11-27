@@ -11,6 +11,9 @@ ui-logo {
 
   .row {
     display: block;
+    white-space: nowrap;
+    line-height: 1.1;
+    overflow: hidden;
   }
 
   .dots-left,
