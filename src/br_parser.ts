@@ -166,8 +166,13 @@ export class BRParser {
         if (tagMatch) {
           const [fullMatch, tagName, rawParam, innerText] = tagMatch;
           const param = rawParam?.trim();
+          const isSlow = tagName === 'slow';
+          const isTempo = tagName === 'fast' || isSlow;
 
-          if (tagName === 'fast' || tagName === 'slow') {
+          if (isTempo) {
+            if (isSlow) {
+              tokens.push({ type: 'pause', value: '', delay: brDict['SLOW_PRE_PAUSE'] });
+            }
             const scale = this.getTempoScale(tagName, param);
             tokens.push(...this.parse(innerText, this.scaleConfig(config, tagName, scale), rules));
           } else {

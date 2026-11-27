@@ -98,6 +98,7 @@ export interface BRDictionary {
   readonly RIPPLE_PAD_DURATION: number;
   readonly SYLLABIC_PAD_DURATION: number;
   readonly SYLLABIC_RATIO: number;
+  readonly SLOW_PRE_PAUSE: number;
 
 
   // CSS-токены из :root
@@ -211,6 +212,7 @@ const cache = new Map<string, unknown>([
   ['RIPPLE_PAD_DURATION', 420],
   ['SYLLABIC_PAD_DURATION', 350],
   ['SYLLABIC_RATIO', 4],
+  ['SLOW_PRE_PAUSE', 150],
 ]);
 
 function parseCssValue (raw: string): string | number {
