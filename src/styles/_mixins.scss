@@ -1,0 +1,26 @@
+@use './vars' as v;
+
+@mixin mobile {
+  @media (max-width: v.$bp-mobile) {
+    @content;
+  }
+}
+
+@mixin neon-title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  padding-left: 0.35em;
+  color: var(--neon);
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.65);
+  user-select: none;
+}
+
+@mixin subtitle-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 18px;
+}

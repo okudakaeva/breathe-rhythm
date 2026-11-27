@@ -1,0 +1,38 @@
+ui-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  background: rgb(from var(--overlay) r g b / 0.58);
+  backdrop-filter: var(--backdrop);
+  -webkit-backdrop-filter: var(--backdrop);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-smooth), visibility var(--transition-smooth);
+
+  > * {
+    transform: translateY(8px);
+    transition: transform var(--transition-curve);
+  }
+
+  &[visible] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+
+    > * {
+      transform: translateY(0);
+    }
+  }
+
+  &[instant],
+  &[instant] > *,
+  &:not(:defined) {
+    transition: none !important;
+  }
+}

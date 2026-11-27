@@ -59,7 +59,6 @@ export interface BRDictionary {
   // Эффекты
   readonly FLASH_MIN_SPREAD: number;
   readonly FLASH_COUNT: number;
-  // В интерфейс BRDictionary (в раздел // Эффекты):
   readonly DEFAULT_MIN_DURATION: number;
   readonly DEFAULT_PAD_DURATION: number;
   readonly FIREFLIES_MIN_DURATION: number;
@@ -110,7 +109,6 @@ export interface BRDictionary {
   readonly ID_PAUSE_OVERLAY: string;
   readonly ID_BTN_RESUME: string;
 
-
   // CSS-токены из :root
   readonly BGR: string;
   readonly OVERLAY: string;
@@ -120,120 +118,131 @@ export interface BRDictionary {
   readonly BTN_SIZE: number;
   readonly BTN_SIZE_LG: number;
   readonly TOOLBAR_BOTTOM: number;
-
-  readonly [cssVar: string]: string | number;
 }
 
-const cache = new Map<string, unknown>([
+type CssTokenKeys =
+    | 'DPR'
+    | 'MOBILE_BREAKPOINT'
+    | 'BGR'
+    | 'OVERLAY'
+    | 'BASE'
+    | 'NEON'
+    | 'FONT_MONO'
+    | 'BTN_SIZE'
+    | 'BTN_SIZE_LG'
+    | 'TOOLBAR_BOTTOM';
+
+const entries = {
   // Тексты интерфейса
-  ['APP_TITLE', '...BREATHE\u00A0\u00A0\n\u00A0\u00A0RHYTHM...'],
-  ['APP_SUBTITLE', '...В ритме дыхания...'],
-  ['PAUSE_TITLE', '...ПАУЗА...'],
-  ['BTN_START', 'Старт'],
-  ['BTN_PAUSE', 'Пауза'],
-  ['BTN_RESET', 'Сброс'],
-  ['BTN_RESUME', 'Продолжить'],
-  ['BTN_LOADING', 'Загрузка'],
-  ['HINT_SPACE_KEY', 'SPACE'],
-  ['HINT_SPACE_DESC', 'старт / пауза'],
-  ['HINT_RESET_KEY', 'R'],
-  ['HINT_RESET_DESC', 'выход'],
+  APP_TITLE: '...BREATHE\u00A0\u00A0\n\u00A0\u00A0RHYTHM...',
+  APP_SUBTITLE: '...В ритме дыхания...',
+  PAUSE_TITLE: '...ПАУЗА...',
+  BTN_START: 'Старт',
+  BTN_PAUSE: 'Пауза',
+  BTN_RESET: 'Сброс',
+  BTN_RESUME: 'Продолжить',
+  BTN_LOADING: 'Загрузка',
+  HINT_SPACE_KEY: 'SPACE',
+  HINT_SPACE_DESC: 'старт / пауза',
+  HINT_RESET_KEY: 'R',
+  HINT_RESET_DESC: 'выход',
 
   // Системные константы
-  ['STATE_CHANGE_EVENT', 'engine-state-change'],
-  ['CONTEXT', '2d'],
-  ['MAX_DPR', 2],
-  ['INTRO_START_DELAY', 250],
-  ['SETTLE_DURATION', 200],
-  ['BASE_FONT', '"Courier New", monospace'],
-  ['BASE_FONT_SIZE', 28],
+  STATE_CHANGE_EVENT: 'engine-state-change',
+  CONTEXT: '2d',
+  MAX_DPR: 2,
+  INTRO_START_DELAY: 250,
+  SETTLE_DURATION: 200,
+  BASE_FONT: '"Courier New", monospace',
+  BASE_FONT_SIZE: 28,
 
   // Коэффициенты рендерера
-  ['SCROLL_EASING', 0.035],
-  ['LINE_FADE_IN_STEP', 0.015],
-  ['LINE_FADE_OUT_STEP', 0.04],
-  ['DIMMED_LINE_OPACITY', 0.3],
-  ['FINISHED_LINE_FADE', 0.85],
-  ['ACTIVE_WORD_GLOW', 20],
-  ['MIN_FONT_SIZE', 12],
-  ['MOBILE_MIN_FONT_SIZE', 14],
-  ['MIN_PADDING_X', 20],
-  ['PADDING_X_RATIO', 0.06],
-  ['MIN_LINE_WIDTH', 100],
-  ['MIN_LINE_HEIGHT', 24],
-  ['MIN_INITIAL_Y', 36],
+  SCROLL_EASING: 0.035,
+  LINE_FADE_IN_STEP: 0.015,
+  LINE_FADE_OUT_STEP: 0.04,
+  DIMMED_LINE_OPACITY: 0.3,
+  FINISHED_LINE_FADE: 0.85,
+  ACTIVE_WORD_GLOW: 20,
+  MIN_FONT_SIZE: 12,
+  MOBILE_MIN_FONT_SIZE: 14,
+  MIN_PADDING_X: 20,
+  PADDING_X_RATIO: 0.06,
+  MIN_LINE_WIDTH: 100,
+  MIN_LINE_HEIGHT: 24,
+  MIN_INITIAL_Y: 36,
 
   // Коэффициенты парсера, темпа и пауз
-  ['DEFAULT_TEMPO_FACTOR', 0.5],
-  ['MIN_TEMPO_FACTOR', 0.05],
-  ['MAX_TEMPO_FACTOR', 5],
-  ['MAX_FAST_SCALE', 0.85],
-  ['MIN_TAG_CHUNK_DELAY', 150],
-  ['SPACE_DELAY_RATIO', 0.5],
-  ['PAUSE_RESUME_RATIO', 0.5],
-  ['MIN_RESUME_DELAY', 200],
+  DEFAULT_TEMPO_FACTOR: 0.5,
+  MIN_TEMPO_FACTOR: 0.05,
+  MAX_TEMPO_FACTOR: 5,
+  MAX_FAST_SCALE: 0.85,
+  MIN_TAG_CHUNK_DELAY: 150,
+  SPACE_DELAY_RATIO: 0.5,
+  PAUSE_RESUME_RATIO: 0.5,
+  MIN_RESUME_DELAY: 200,
 
   // Коэффициенты спрайтов и частиц
-  ['SPRITE_PAD_X', 24],
-  ['SPRITE_MIN_SIZE', 10],
-  ['SPRITE_LINE_RATIO', 1.8],
-  ['SPRITE_GLOW_BLUR', 16],
-  ['MOBILE_PARTICLE_RATIO', 0.65],
+  SPRITE_PAD_X: 24,
+  SPRITE_MIN_SIZE: 10,
+  SPRITE_LINE_RATIO: 1.8,
+  SPRITE_GLOW_BLUR: 16,
+  MOBILE_PARTICLE_RATIO: 0.65,
 
   // Эффекты
-  ['FLASH_MIN_SPREAD', 400],
-  ['FLASH_COUNT', 60],
-  // Эффекты
-  ['DEFAULT_MIN_DURATION', 450],
-  ['DEFAULT_PAD_DURATION', 300],
-  ['FIREFLIES_MIN_DURATION', 950],
-  ['FIREFLIES_PAD_DURATION', 300],
-  ['SAND_MIN_DURATION', 950],
-  ['SAND_PAD_DURATION', 300],
-  ['GLITTER_MIN_DURATION', 950],
-  ['GLITTER_PAD_DURATION', 450],
-  ['BREEZE_MIN_DURATION', 950],
-  ['BREEZE_PAD_DURATION', 300],
-  ['FROST_MIN_DURATION', 950],
-  ['FROST_PAD_DURATION', 300],
-  ['CONSTELLATION_MIN_DURATION', 1150],
-  ['CONSTELLATION_PAD_DURATION', 200],
-  ['WIND_MIN_DURATION', 850],
-  ['WIND_PAD_DURATION', 300],
-  ['EMBERS_MIN_DURATION', 900],
-  ['EMBERS_PAD_DURATION', 380],
-  ['SNOW_MIN_DURATION', 1100],
-  ['SNOW_PAD_DURATION', 450],
-  ['SPARKS_MIN_DURATION', 850],
-  ['SPARKS_PAD_DURATION', 350],
-  ['DANDELION_MIN_DURATION', 1050],
-  ['DANDELION_PAD_DURATION', 480],
-  ['WATER_MIN_DURATION', 900],
-  ['WATER_PAD_DURATION', 350],
-  ['ECHO_MIN_DURATION', 850],
-  ['ECHO_PAD_DURATION', 420],
-  ['MIRROR_MIN_DURATION', 950],
-  ['MIRROR_PAD_DURATION', 420],
-  ['GROW_MIN_DURATION', 600],
-  ['GROW_PAD_DURATION', 250],
-  ['FIRE_MIN_DURATION', 1000],
-  ['FIRE_PAD_DURATION', 400],
-  ['RIPPLE_MIN_DURATION', 1000],
-  ['RIPPLE_PAD_DURATION', 420],
-  ['SYLLABIC_PAD_DURATION', 350],
-  ['SYLLABIC_RATIO', 4],
-  ['SLOW_PRE_PAUSE', 150],
+  FLASH_MIN_SPREAD: 400,
+  FLASH_COUNT: 60,
+  DEFAULT_MIN_DURATION: 450,
+  DEFAULT_PAD_DURATION: 300,
+  FIREFLIES_MIN_DURATION: 950,
+  FIREFLIES_PAD_DURATION: 300,
+  SAND_MIN_DURATION: 950,
+  SAND_PAD_DURATION: 300,
+  GLITTER_MIN_DURATION: 950,
+  GLITTER_PAD_DURATION: 450,
+  BREEZE_MIN_DURATION: 950,
+  BREEZE_PAD_DURATION: 300,
+  FROST_MIN_DURATION: 950,
+  FROST_PAD_DURATION: 300,
+  CONSTELLATION_MIN_DURATION: 1150,
+  CONSTELLATION_PAD_DURATION: 200,
+  WIND_MIN_DURATION: 850,
+  WIND_PAD_DURATION: 300,
+  EMBERS_MIN_DURATION: 900,
+  EMBERS_PAD_DURATION: 380,
+  SNOW_MIN_DURATION: 1100,
+  SNOW_PAD_DURATION: 450,
+  SPARKS_MIN_DURATION: 850,
+  SPARKS_PAD_DURATION: 350,
+  DANDELION_MIN_DURATION: 1050,
+  DANDELION_PAD_DURATION: 480,
+  WATER_MIN_DURATION: 900,
+  WATER_PAD_DURATION: 350,
+  ECHO_MIN_DURATION: 850,
+  ECHO_PAD_DURATION: 420,
+  MIRROR_MIN_DURATION: 950,
+  MIRROR_PAD_DURATION: 420,
+  GROW_MIN_DURATION: 600,
+  GROW_PAD_DURATION: 250,
+  FIRE_MIN_DURATION: 1000,
+  FIRE_PAD_DURATION: 400,
+  RIPPLE_MIN_DURATION: 1000,
+  RIPPLE_PAD_DURATION: 420,
+  SYLLABIC_PAD_DURATION: 350,
+  SYLLABIC_RATIO: 4,
+  SLOW_PRE_PAUSE: 150,
 
   // ID's в HTML
-  ['ID_ENGINE', 'engine'],
-  ['ID_TOOLBAR', 'controls'],
-  ['ID_START_OVERLAY', 'startOverlay'],
-  ['ID_BTN_INTRO', 'btnIntro'],
-  ['ID_BTN_START', 'btnStart'],
-  ['ID_BTN_RESET', 'btnReset'],
-  ['ID_PAUSE_OVERLAY', 'pauseOverlay'],
-  ['ID_BTN_RESUME', 'btnResume'],
-]);
+  ID_ENGINE: 'engine',
+  ID_TOOLBAR: 'controls',
+  ID_START_OVERLAY: 'startOverlay',
+  ID_BTN_INTRO: 'btnIntro',
+  ID_BTN_START: 'btnStart',
+  ID_BTN_RESET: 'btnReset',
+  ID_PAUSE_OVERLAY: 'pauseOverlay',
+  ID_BTN_RESUME: 'btnResume',
+} as const satisfies Omit<BRDictionary, CssTokenKeys>;
+
+const cache = new Map<string, unknown>(Object.entries(entries));
 
 const parseCssValue = (raw: string): string | number => {
   const unquoted = raw.replace(/^['"]|['"]$/g, '').trim();
@@ -242,7 +251,7 @@ const parseCssValue = (raw: string): string | number => {
     return parseFloat(unquoted);
   }
   return unquoted;
-}
+};
 
 const getDPR = () => typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, brDict['MAX_DPR']) : 1;
 
@@ -254,7 +263,7 @@ export const brDict = new Proxy({} as BRDictionary, {
     if (prop === 'DPR' || cache.has(prop)) {
       return true;
     }
-    return Boolean(brDict[prop]);
+    return Boolean(brDict[prop as keyof BRDictionary]);
   },
   get (_, prop: string | symbol): unknown {
     if (typeof prop !== 'string') {
@@ -288,4 +297,6 @@ export const brDict = new Proxy({} as BRDictionary, {
   },
 });
 
+export const isBrDictKey = (key: string | undefined): key is keyof BRDictionary =>
+    Boolean(key && key in brDict);
 

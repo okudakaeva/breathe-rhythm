@@ -1,10 +1,10 @@
-import { brDict } from '../br_dictionary';
+import { brDict, isBrDictKey } from '../br_dictionary';
 
 const appRun = (root: ParentNode = document): void => {
   root.querySelectorAll<HTMLElement>('[data-dict]')
       .forEach((el) => {
         const key = el.dataset.dict;
-        if (!key || !(key in brDict)) {
+        if (!isBrDictKey(key)) {
           return;
         }
 
@@ -21,7 +21,7 @@ const appRun = (root: ParentNode = document): void => {
       .forEach((el) => {
         const id = el.dataset.id;
 
-        if (!id || !(id in brDict)) {
+        if (!isBrDictKey(id)) {
           return;
         }
 

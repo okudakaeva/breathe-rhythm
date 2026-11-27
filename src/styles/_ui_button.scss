@@ -1,0 +1,62 @@
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+ui-button {
+  &::part(ui-button) {
+    background: transparent;
+    color: var(--neon);
+    border: 1px solid var(--neon);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    width: var(--btn-size);
+    height: var(--btn-size);
+    padding: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    &:hover:not(:disabled) {
+      background: var(--neon);
+      color: var(--bgr);
+      box-shadow: 0 0 15px var(--neon);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  ui-icon {
+    svg {
+      width: var(--icon-size);
+      height: var(--icon-size);
+    }
+
+    &[name="loader"] svg {
+      animation: spin 1s linear infinite;
+    }
+  }
+
+  &.btn-play-large {
+    &::part(ui-button) {
+      width: var(--btn-size-lg);
+      height: var(--btn-size-lg);
+      border-width: 2px;
+      box-shadow: 0 0 18px rgb(from var(--neon) r g b / 0.2), inset 0 0 12px rgb(from var(--neon) r g b / 0.12);
+
+      &:hover:not(:disabled) {
+        box-shadow: 0 0 28px var(--neon);
+        transform: scale(1.05);
+      }
+    }
+
+    ui-icon svg {
+      width: var(--icon-size-lg);
+      height: var(--icon-size-lg);
+    }
+  }
+}

@@ -6,4 +6,6 @@ Thumbs.db
 *.log
 **/*.js
 **/*.js.map
+**/*.css
+**/*.css.map
 package-lock.json
