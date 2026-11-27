@@ -282,7 +282,7 @@ export class BRRenderer {
     const fontFamily = fontMatch ? fontMatch[2] : brDict['BASE_FONT'];
     const paddingX = Math.max(brDict['MIN_PADDING_X'], Math.min(this.engineConfig.paddingX, Math.round(width * brDict['PADDING_X_RATIO'])));
     const maxWidth = Math.max(brDict['MIN_LINE_WIDTH'], width - paddingX * 2);
-    let fontSize = Math.max(brDict['MOBILE_MIN_FONT_SIZE'], Math.round(baseFontSize * scale));
+    let fontSize = Math.max(brDict['MIN_FONT_SIZE'], Math.round(baseFontSize * scale));
 
     if (this.lines.length > 0) {
       this.ctx.font = `${ fontSize }px ${ fontFamily }`;

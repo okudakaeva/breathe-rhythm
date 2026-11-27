@@ -84,7 +84,6 @@ export interface BRTextDrawOptions {
 const CONFIG = {
   CORE_RADIUS: 4,
   DEFAULT_COLOR: '#ffffff',
-  DEFAULT_FONT_SIZE: 28,
   DEFAULT_PIVOT_Y_OFFSET: 8,
   SPRITE_PAD_Y_RATIO: 0.9,
   MIN_OPACITY: 0.01,
@@ -114,7 +113,7 @@ export class BRAccentsBase {
 
   public static extractFontSize (font: string): number {
     const match = font.match(/^(\d+(?:\.\d+)?)px/);
-    return match ? parseFloat(match[1]) : CONFIG.DEFAULT_FONT_SIZE;
+    return match ? parseFloat(match[1]) : brDict['BASE_FONT_SIZE'];
   }
 
   public static fallbackText (

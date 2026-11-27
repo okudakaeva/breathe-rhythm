@@ -32,7 +32,6 @@ export interface BRDictionary {
   readonly FINISHED_LINE_FADE: number;
   readonly ACTIVE_WORD_GLOW: number;
   readonly MIN_FONT_SIZE: number;
-  readonly MOBILE_MIN_FONT_SIZE: number;
   readonly MIN_PADDING_X: number;
   readonly PADDING_X_RATIO: number;
   readonly MIN_LINE_WIDTH: number;
@@ -155,7 +154,7 @@ const entries = {
   INTRO_START_DELAY: 250,
   SETTLE_DURATION: 200,
   BASE_FONT: '"Courier New", monospace',
-  BASE_FONT_SIZE: 28,
+  BASE_FONT_SIZE: 24,
 
   // Коэффициенты рендерера
   SCROLL_EASING: 0.035,
@@ -164,8 +163,7 @@ const entries = {
   DIMMED_LINE_OPACITY: 0.3,
   FINISHED_LINE_FADE: 0.85,
   ACTIVE_WORD_GLOW: 20,
-  MIN_FONT_SIZE: 12,
-  MOBILE_MIN_FONT_SIZE: 14,
+  MIN_FONT_SIZE: 16,
   MIN_PADDING_X: 20,
   PADDING_X_RATIO: 0.06,
   MIN_LINE_WIDTH: 100,
