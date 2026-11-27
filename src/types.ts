@@ -2,7 +2,7 @@ export type BRTokenType = 'char' | 'hellip' | 'dash' | 'pause' | 'effect' | 'end
 export type BREffectType = 'syllabic' | 'mask' | 'particles' | 'simple';
 export type BRColor = string | CanvasGradient | CanvasPattern;
 export type BRContext = CanvasRenderingContext2D;
-export type BRTemplate = { open: string; close: string };
+export type BRTemplate = { open: string; close: string, end?: string };
 
 export interface BREngineConfig {
   bgColor: string;

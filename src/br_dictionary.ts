@@ -42,6 +42,7 @@ export interface BRDictionary {
   readonly DEFAULT_TEMPO_FACTOR: number;
   readonly MIN_TEMPO_FACTOR: number;
   readonly MAX_TEMPO_FACTOR: number;
+  readonly MAX_FAST_SCALE: number;
   readonly MIN_TAG_CHUNK_DELAY: number;
   readonly SPACE_DELAY_RATIO: number;
   readonly PAUSE_RESUME_RATIO: number;
@@ -150,9 +151,10 @@ const cache = new Map<string, unknown>([
   ['MIN_INITIAL_Y', 36],
 
   // Коэффициенты парсера, темпа и пауз
-  ['DEFAULT_TEMPO_FACTOR', 1.5],
-  ['MIN_TEMPO_FACTOR', 0.25],
-  ['MAX_TEMPO_FACTOR', 4],
+  ['DEFAULT_TEMPO_FACTOR', 0.5],
+  ['MIN_TEMPO_FACTOR', 0.05],
+  ['MAX_TEMPO_FACTOR', 5],
+  ['MAX_FAST_SCALE', 0.85],
   ['MIN_TAG_CHUNK_DELAY', 150],
   ['SPACE_DELAY_RATIO', 0.5],
   ['PAUSE_RESUME_RATIO', 0.5],

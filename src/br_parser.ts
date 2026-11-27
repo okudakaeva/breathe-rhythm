@@ -10,6 +10,7 @@ export interface BRParserRules {
   colon: string[];
   pause: BRTemplate;
   effect: BRTemplate;
+  tag: BRTemplate;
 }
 
 export const BR_PARSER_CONFIG: BRParserConfig = {
@@ -33,8 +34,13 @@ export const BR_PARSER_RULES: BRParserRules = {
   },
   effect: {
     open: '{',
-    close: '}'
+    close: '}',
   },
+  tag: {
+    open: '<',
+    close: '>',
+    end: '/',
+  }
 };
 
 export class BRParser {
@@ -48,6 +54,34 @@ export class BRParser {
 
   private static escapeRegExp (str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private static getTempoScale (tagName: string, param?: string): number {
+    const parsed = param ? parseFloat(param) : NaN;
+    const rawScale = Number.isFinite(parsed) && parsed > 0 ? parsed : brDict['DEFAULT_TEMPO_FACTOR'];
+
+    if (tagName === 'fast') {
+      return Math.min(brDict['MAX_FAST_SCALE'], Math.max(brDict['MIN_TEMPO_FACTOR'], rawScale));
+    }
+
+    return Math.min(brDict['MAX_TEMPO_FACTOR'], Math.max(brDict['MIN_TEMPO_FACTOR'], rawScale));
+  }
+
+  private static applyTempo (delay: number, tagName: string, scale: number): number {
+    const delta = delay * scale;
+    const result = tagName === 'fast' ? delay - delta : delay + delta;
+    return Math.max(1, Math.round(result));
+  }
+
+  private static scaleConfig (config: BRParserConfig, tagName: string, scale: number): BRParserConfig {
+    return {
+      char: this.applyTempo(config.char, tagName, scale),
+      hellip: this.applyTempo(config.hellip, tagName, scale),
+      dash: this.applyTempo(config.dash, tagName, scale),
+      ending: this.applyTempo(config.ending, tagName, scale),
+      separators: this.applyTempo(config.separators, tagName, scale),
+      colon: this.applyTempo(config.colon, tagName, scale),
+    };
   }
 
   private static parseTag (
@@ -116,6 +150,7 @@ export class BRParser {
       rules: BRParserRules = BR_PARSER_RULES
   ): BRToken[] {
     const tokens: BRToken[] = [];
+    const tagRegex = BRParser.getTagRegex(rules.tag);
     let i = 0;
 
     while (i < lineStr.length) {
@@ -125,13 +160,20 @@ export class BRParser {
       const isHellip = rules.hellip.includes(current);
       const isDash = rules.dash.includes(next);
 
-      if (current === '<') {
-        const tagMatch = lineStr.slice(i).match(/^<([a-zA-Z0-9_-]+)(?::([^>]+))?>([\s\S]*?)<\/\1>/);
+      if (current === rules.tag.open) {
+        const tagMatch = lineStr.slice(i).match(tagRegex);
 
         if (tagMatch) {
           const [fullMatch, tagName, rawParam, innerText] = tagMatch;
           const param = rawParam?.trim();
-          tokens.push(...this.parseTag(tagName, innerText, param, config, rules));
+
+          if (tagName === 'fast' || tagName === 'slow') {
+            const scale = this.getTempoScale(tagName, param);
+            tokens.push(...this.parse(innerText, this.scaleConfig(config, tagName, scale), rules));
+          } else {
+            tokens.push(...this.parseTag(tagName, innerText, param, config, rules));
+          }
+
           i += fullMatch.length;
           continue;
         }
@@ -191,5 +233,13 @@ export class BRParser {
     const escapedSymbols = stickySymbols.map(s => (s === '.' ? `\\${ s }` : s)).join('');
 
     return new RegExp(`[${ escapedSymbols }]$`);
+  }
+
+  private static getTagRegex (tagRule: BRTemplate): RegExp {
+    const open = this.escapeRegExp(tagRule.open);
+    const close = this.escapeRegExp(tagRule.close);
+    const end = this.escapeRegExp(tagRule.end ?? '/');
+
+    return new RegExp(`^${ open }([a-zA-Z0-9_-]+)(?::([^${ close }]+))?${ close }([\\s\\S]*?)${ open }${ end }\\1${ close }`);
   }
 }
