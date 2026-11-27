@@ -58,8 +58,8 @@ if (required.some(el => !el)) {
       if (!isIntroPlayed) {
         _overlay.classList.remove('intro-anim');
         void (async () => {
-          await runOnVisibleTab();
           await delay(brDict['INTRO_START_DELAY']);
+          await runOnVisibleTab();
 
           if (!isIntroPlayed) {
             isIntroPlayed = true;
