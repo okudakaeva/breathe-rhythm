@@ -35,6 +35,12 @@
   }
 }
 
+@mixin touch-only {
+  @media (hover: none) and (pointer: coarse) {
+    @content;
+  }
+}
+
 .visually-hidden { // для скринридеров
   position: absolute;
   width: 1px;

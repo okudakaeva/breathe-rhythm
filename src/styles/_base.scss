@@ -51,6 +51,10 @@ breathe-rhythm {
     font-size: 12px;
   }
 
+  @include m.touch-only {
+    display: none;
+  }
+
   span {
     display: inline-flex;
     align-items: center;
