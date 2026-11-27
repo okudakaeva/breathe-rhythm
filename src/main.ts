@@ -1,6 +1,7 @@
 import { applyDict, brDict } from './br_dictionary.ts';
 import { BreatheRhythmEngine } from './breathe_rhythm_engine.ts';
 import { UIButton, UIIconName, UIOverlay, UIToolbar } from './ui';
+import { delay } from './br_delay.ts';
 
 applyDict();
 
@@ -30,17 +31,16 @@ const resetAction = (_btn: HTMLButtonElement, inst: BreatheRhythmEngine) => inst
 const syncReadyState = (button: HTMLButtonElement, instance: BreatheRhythmEngine) => {
   button.disabled = !instance || !instance.isReady;
 };
-const runOnVisibleTab = (cb: () => void) => {
-  if (!document.hidden) {
-    cb();
-    return;
+const runOnVisibleTab = async () => {
+  if (document.hidden) {
+    return new Promise<void>(resolve => document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        resolve();
+      }
+    }, { once: true }));
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      cb();
-    }
-  }, { once: true });
+  return Promise.resolve();
 };
 
 if (required.some(el => !el)) {
@@ -57,12 +57,15 @@ if (required.some(el => !el)) {
     if (shouldShow) {
       if (!isIntroPlayed) {
         _overlay.classList.remove('intro-anim');
-        runOnVisibleTab(() => {
+        void (async () => {
+          await runOnVisibleTab();
+          await delay(brDict['INTRO_START_DELAY']);
+
           if (!isIntroPlayed) {
             isIntroPlayed = true;
             _overlay.classList.add('intro-anim');
           }
-        });
+        })();
       }
 
       _overlay.delay = isIntroPlayed ? 170 : 0;

@@ -18,6 +18,7 @@ export interface BRDictionary {
   readonly CONTEXT: '2d';
   readonly MAX_DPR: number;
   readonly DPR: number;
+  readonly INTRO_START_DELAY: number;
   readonly SETTLE_DURATION: number;
   readonly MOBILE_BREAKPOINT: number;
   readonly BASE_FONT: string;
@@ -131,6 +132,7 @@ const cache = new Map<string, unknown>([
   ['STATE_CHANGE_EVENT', 'engine-state-change'],
   ['CONTEXT', '2d'],
   ['MAX_DPR', 2],
+  ['INTRO_START_DELAY', 250],
   ['SETTLE_DURATION', 200],
   ['BASE_FONT', '"Courier New", monospace'],
   ['BASE_FONT_SIZE', 28],

@@ -1,5 +1,7 @@
 type BRDelayResult = { completed: boolean; remaining: number };
 
+export const delay = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
+
 export const BRDelay = (ms: number, signal?: AbortSignal): Promise<BRDelayResult> => {
   return new Promise((resolve) => {
     if (signal?.aborted) {
