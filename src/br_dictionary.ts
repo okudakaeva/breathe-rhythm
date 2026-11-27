@@ -100,6 +100,16 @@ export interface BRDictionary {
   readonly SYLLABIC_RATIO: number;
   readonly SLOW_PRE_PAUSE: number;
 
+  // ID's в HTML
+  readonly ID_ENGINE: string;
+  readonly ID_TOOLBAR: string;
+  readonly ID_START_OVERLAY: string;
+  readonly ID_BTN_INTRO: string;
+  readonly ID_BTN_START: string;
+  readonly ID_BTN_RESET: string;
+  readonly ID_PAUSE_OVERLAY: string;
+  readonly ID_BTN_RESUME: string;
+
 
   // CSS-токены из :root
   readonly BGR: string;
@@ -213,9 +223,19 @@ const cache = new Map<string, unknown>([
   ['SYLLABIC_PAD_DURATION', 350],
   ['SYLLABIC_RATIO', 4],
   ['SLOW_PRE_PAUSE', 150],
+
+  // ID's в HTML
+  ['ID_ENGINE', 'engine'],
+  ['ID_TOOLBAR', 'controls'],
+  ['ID_START_OVERLAY', 'startOverlay'],
+  ['ID_BTN_INTRO', 'btnIntro'],
+  ['ID_BTN_START', 'btnStart'],
+  ['ID_BTN_RESET', 'btnReset'],
+  ['ID_PAUSE_OVERLAY', 'pauseOverlay'],
+  ['ID_BTN_RESUME', 'btnResume'],
 ]);
 
-function parseCssValue (raw: string): string | number {
+const parseCssValue = (raw: string): string | number => {
   const unquoted = raw.replace(/^['"]|['"]$/g, '').trim();
 
   if (/^-?\d+(\.\d+)?(px)?$/.test(unquoted)) {
@@ -223,6 +243,8 @@ function parseCssValue (raw: string): string | number {
   }
   return unquoted;
 }
+
+const getDPR = () => typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, brDict['MAX_DPR']) : 1;
 
 export const brDict = new Proxy({} as BRDictionary, {
   has (_, prop: string | symbol): boolean {
@@ -265,23 +287,5 @@ export const brDict = new Proxy({} as BRDictionary, {
     return value;
   },
 });
-
-const getDPR = () => typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, brDict['MAX_DPR']) : 1;
-
-export function applyDict (root: ParentNode = document): void {
-  root.querySelectorAll<HTMLElement>('[data-dict]').forEach((el) => {
-    const key = el.dataset.dict;
-    if (!key || !(key in brDict)) {
-      return;
-    }
-
-    const val = String(brDict[key]);
-    if (el.tagName === 'UI-BUTTON' || el.tagName === 'UI-LOGO' || el.tagName === 'UI-SUBTITLE') {
-      el.setAttribute('label', val);
-    } else {
-      el.textContent = val;
-    }
-  });
-}
 
 

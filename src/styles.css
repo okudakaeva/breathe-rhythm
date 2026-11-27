@@ -314,7 +314,7 @@ ui-overlay#startOverlay.intro-done > * {
     transition: none;
 }
 
-ui-overlay#startOverlay.intro-done #btnInitStart,
+ui-overlay#startOverlay.intro-done #btnIntro,
 ui-overlay#startOverlay.intro-done .key-hints {
     animation: bootFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.85s both;
 }

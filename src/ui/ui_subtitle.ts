@@ -24,7 +24,7 @@ export class UISubtitle extends UIComponent {
     const [, leftDots, coreText, rightDots] = match;
 
     this.template = `
-        <p class="subtitle" data-dict="APP_SUBTITLE">
+        <p class="subtitle">
           <span class="sub-dots-left">${ leftDots }</span><span class="sub-text">${ coreText }</span><span class="sub-dots-right">${ rightDots }</span>
         </p>
     `;
