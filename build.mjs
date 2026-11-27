@@ -47,7 +47,7 @@ const validateCssTokens = (css) => {
     const rootBlock = css.match(/:root\s*\{([^}]+)}/)?.[1] ?? '';
     const cssMap = new Map();
 
-    for (const [, name, raw] of rootBlock.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+);/gi)) {
+    for (const [, name, raw] of rootBlock.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)(?:;|$)/gi)) {
         cssMap.set(name.toUpperCase().replace(/-/g, '_'), raw.trim());
     }
 
