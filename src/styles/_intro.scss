@@ -131,8 +131,8 @@ ui-overlay#startOverlay.intro-done {
     }
   }
 
-  .wave-area,
-  .key-hints {
+  ui-play,
+  ui-keyhints {
     animation: bootFadeUp 0.6s v.$ease-out 2.65s both;
   }
 

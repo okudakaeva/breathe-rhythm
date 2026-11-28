@@ -7,7 +7,7 @@
 }
 
 ui-button {
-  &::part(ui-button) {
+  &::part(button) {
     background: transparent;
     color: var(--neon);
     border: 1px solid var(--neon);
@@ -44,7 +44,7 @@ ui-button {
   }
 
   &.btn-play-large {
-    &::part(ui-button) {
+    &::part(button) {
       width: var(--btn-size-lg);
       height: var(--btn-size-lg);
       border-width: 2px;

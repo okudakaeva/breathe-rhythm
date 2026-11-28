@@ -5,6 +5,22 @@ export class UILogo extends UIComponent {
     return [...super.observedAttributes, 'label'];
   }
 
+  private splitRows = (str: string): [string, string, string, string] => {
+    const [topRaw = '', bottomRaw = ''] = str.split('\n');
+
+    return [topRaw.slice(0, 3), topRaw.slice(3), bottomRaw.slice(0, -3), bottomRaw.slice(-3)];
+  }
+
+  private renderChars = (str: string, offset: number = 0) =>
+      Array.from(str)
+          .map((ch, i) => `<span class="char" style="--i: ${ offset + i }">${ ch }</span>`)
+          .join('');
+
+  public renderDots = (str: string) =>
+      Array.from(str)
+          .map((ch, i) => `<span class="dot" style="--d: ${ i }">${ ch }</span>`)
+          .join('');
+
   public attributeChangedCallback (name: string, oldValue: string | null, newValue: string | null): void {
     super.attributeChangedCallback(name, oldValue || '', newValue || '');
 
@@ -15,34 +31,20 @@ export class UILogo extends UIComponent {
 
   public updateUI (): void {
     const raw = this.getAttribute('label') || '';
+
     if (!raw) {
       return;
     }
 
-    const [topRaw = '', bottomRaw = ''] = raw.split('\n');
-    const topDots = topRaw.slice(0, 3);
-    const topWord = topRaw.slice(3);
-    const bottomWord = bottomRaw.slice(0, -3);
-    const bottomDots = bottomRaw.slice(-3);
-
-    const buildChars = (str: string, offset: number = 0) =>
-        Array.from(str)
-            .map((ch, i) => `<span class="char" style="--i: ${ offset + i }">${ ch }</span>`)
-            .join('');
-
-    const buildDots = (str: string) =>
-        Array.from(str)
-            .map((ch, i) => `<span class="dot" style="--d: ${ i }">${ ch }</span>`)
-            .join('');
-
+    const [topDots, topWord, bottomWord, bottomDots] = this.splitRows(raw);
 
     this.template = `
       <div class="logo" role="heading" aria-level="1">
         <span class="row">
-          <span class="dots-left">${ buildDots(topDots) }</span>${ buildChars(topWord) }
+          <span class="dots-left">${ this.renderDots(topDots) }</span>${ this.renderChars(topWord) }
         </span>
         <span class="row">
-          ${ buildChars(bottomWord, topWord.trim().length) }<span class="dots-right">${ buildDots(bottomDots) }</span>
+          ${ this.renderChars(bottomWord, topWord.trim().length) }<span class="dots-right">${ this.renderDots(bottomDots) }</span>
         </span>
       </div>
     `;

@@ -7,6 +7,8 @@ declare global {
     'ui-overlay': import('./ui_overlay.ts').UIOverlay;
     'ui-logo': import('./ui_logo.ts').UILogo;
     'ui-subtitle': import('./ui_subtitle.ts').UISubtitle;
+    'ui-play': import('./ui_play.ts').UIPlay;
+    'ui-keyhints': import('./ui_keyhints.ts').UIKeyHints;
     'breathe-rhythm': import('../breathe_rhythm_engine.ts').BreatheRhythmEngine;
   }
 }

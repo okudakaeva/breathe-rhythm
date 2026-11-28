@@ -57,7 +57,7 @@ export class UIButton extends UIComponent {
       await this.onClickHandler(this.button, this._engine);
     });
 
-    this.button.setAttribute('part', 'ui-button');
+    this.button.setAttribute('part', 'button');
     this.shadowRoot!.appendChild(this.button);
   }
 

@@ -6,5 +6,7 @@ export * from './ui_toolbar.ts';
 export * from './ui_overlay.ts';
 export * from './ui_logo.ts';
 export * from './ui_subtitle.ts';
+export * from './ui_play.ts';
+export * from './ui_keyhints.ts';
 
 export * from './ui_app.ts';

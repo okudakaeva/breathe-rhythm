@@ -43,40 +43,33 @@
     <breathe-rhythm data-id="ID_ENGINE" visible></breathe-rhythm>
 
     <ui-overlay data-id="ID_PAUSE_OVERLAY" delay="350" hidden>
-        <h2 class="screen-title" data-dict="PAUSE_TITLE"></h2>
-        <p class="screen-subtitle" data-dict="APP_SUBTITLE"></p>
-        <div class="wave-area">
-            <span class="wave left" aria-hidden="true"></span>
-            <ui-button data-id="ID_BTN_RESUME" class="btn-play-large" data-dict="BTN_RESUME">
+        <h2 class="screen-title" data-text="PAUSE_TITLE"></h2>
+        <p class="screen-subtitle" data-text="APP_SUBTITLE"></p>
+        <ui-play>
+            <ui-button data-id="ID_BTN_RESUME" class="btn-play-large" data-text="BTN_RESUME">
                 <ui-icon name="play" slot="icon"></ui-icon>
             </ui-button>
-            <span class="wave" aria-hidden="true"></span>
-        </div>
+        </ui-play>
     </ui-overlay>
 
     <ui-toolbar data-id="ID_TOOLBAR" hidden>
-        <ui-button data-id="ID_BTN_START" data-dict="BTN_START">
+        <ui-button data-id="ID_BTN_START" data-text="BTN_START">
             <ui-icon name="play" slot="icon"></ui-icon>
         </ui-button>
-        <ui-button data-id="ID_BTN_RESET" data-dict="BTN_RESET">
+        <ui-button data-id="ID_BTN_RESET" data-text="BTN_RESET">
             <ui-icon name="reset" slot="icon"></ui-icon>
         </ui-button>
     </ui-toolbar>
 
     <ui-overlay data-id="ID_START_OVERLAY" delay="0">
-        <ui-logo data-dict="APP_TITLE"></ui-logo>
-        <ui-subtitle data-dict="APP_SUBTITLE"></ui-subtitle>
-        <div class="wave-area">
-            <span class="wave left" aria-hidden="true"></span>
-            <ui-button data-id="ID_BTN_INTRO" class="btn-play-large" data-dict="BTN_START">
+        <ui-logo data-text="APP_TITLE"></ui-logo>
+        <ui-subtitle data-text="APP_SUBTITLE"></ui-subtitle>
+        <ui-play>
+            <ui-button data-id="ID_BTN_INTRO" class="btn-play-large" data-text="BTN_START">
                 <ui-icon name="play" slot="icon"></ui-icon>
             </ui-button>
-            <span class="wave" aria-hidden="true"></span>
-        </div>
-        <div class="key-hints">
-            <span><kbd data-dict="HINT_SPACE_KEY"></kbd> <span data-dict="HINT_SPACE_DESC"></span></span>
-            <span><kbd data-dict="HINT_RESET_KEY"></kbd> <span data-dict="HINT_RESET_DESC"></span></span>
-        </div>
+        </ui-play>
+        <ui-keyhints></ui-keyhints>
     </ui-overlay>
 </ui-app>
 </body>

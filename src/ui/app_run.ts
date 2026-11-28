@@ -1,34 +1,40 @@
 import { brDict, isBrDictKey } from '../br_dictionary';
 
+const getElementsWithData = (root: ParentNode = document) => [...root.querySelectorAll<HTMLElement>('*')]
+    .filter(
+        (el) => Object.keys(el.dataset).length > 0
+    );
+
 const appRun = (root: ParentNode = document): void => {
-  root.querySelectorAll<HTMLElement>('[data-dict]')
-      .forEach((el) => {
-        const key = el.dataset.dict;
-        if (!isBrDictKey(key)) {
-          return;
+  const elements = getElementsWithData(root);
+
+  elements.forEach((el: HTMLElement) => {
+    Object.entries(el.dataset).forEach(([key, data]) => {
+      if (!isBrDictKey(data)) {
+        return;
+      }
+
+      const val = String(brDict[data]);
+
+      switch (key) {
+        case 'text': {
+          if (el.tagName === 'UI-BUTTON' || el.tagName === 'UI-LOGO' || el.tagName === 'UI-SUBTITLE') {
+            el.setAttribute('label', val);
+          } else {
+            el.textContent = val;
+          }
+
+          break;
         }
-
-        const val = String(brDict[key]);
-        if (el.tagName === 'UI-BUTTON' || el.tagName === 'UI-LOGO' || el.tagName === 'UI-SUBTITLE') {
-          el.setAttribute('label', val);
-        } else {
-          el.textContent = val;
+        default: {
+          el.setAttribute(key, val);
+          break;
         }
-        el.removeAttribute('data-dict')
-      });
+      }
 
-  root.querySelectorAll<HTMLElement>('[data-id]')
-      .forEach((el) => {
-        const id = el.dataset.id;
-
-        if (!isBrDictKey(id)) {
-          return;
-        }
-
-        const val = String(brDict[id]);
-        el.setAttribute('id', val);
-        el.removeAttribute('data-id')
-      });
+      el.removeAttribute(`data-${ key }`);
+    });
+  });
 }
 
 appRun();
