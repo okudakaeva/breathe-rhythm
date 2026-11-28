@@ -12,8 +12,7 @@ ui-logo {
   .row {
     display: block;
     white-space: nowrap;
-    line-height: 1.1;
-    overflow: hidden;
+    line-height: 1.35;
   }
 
   .dots-left,
@@ -21,5 +20,28 @@ ui-logo {
   .char,
   .dot {
     display: inline-block;
+  }
+
+  .char {
+    width: 1.16em;
+
+    @include m.mobile {
+      width: 1.045em;
+    }
+  }
+
+  .dot {
+    font-family: var(--font-mono);
+    font-size: clamp(28px, 5vw, 40px);
+    line-height: 0;
+    width: 1.045em;
+
+    @include m.landscape-compact {
+      font-size: clamp(24px, 5vw, 32px);
+    }
+
+    @include m.mobile {
+      width: 1em;
+    }
   }
 }

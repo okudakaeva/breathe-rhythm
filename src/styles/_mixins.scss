@@ -9,29 +9,32 @@
 @mixin neon-title {
   margin: 0;
   text-align: center;
-  font-size: clamp(32px, 5vw, 44px);
-  font-weight: 400;
-  line-height: 1.25;
-  letter-spacing: 0.35em;
-  padding-left: 0.35em;
+  font-family: var(--font-slab);
+  font-size: clamp(26px, 5vw, 36px);
+  font-weight: 300;
+  line-height: 1.35;
+  letter-spacing: 0.45em;
+  padding-left: 0.45em;
   color: var(--neon);
   text-transform: uppercase;
-  text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.65);
+  text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.45);
   user-select: none;
 
   @include landscape-compact {
-    font-size: clamp(28px, 5vw, 36px);
+    font-size: clamp(22px, 5vw, 28px);
   }
 
   @include mobile {
-    letter-spacing: 0.25em;
+    letter-spacing: 0.3em;
+    padding-left: 0.3em;
   }
 }
 
 @mixin subtitle-text {
   margin: 0;
   color: var(--muted);
-  font-size: 18px;
+  font-size: 16px;
+  letter-spacing: 0.07em;
 }
 
 @mixin landscape-compact {

@@ -23,6 +23,8 @@ export interface BRDictionary {
   readonly MOBILE_BREAKPOINT: number;
   readonly BASE_FONT: string;
   readonly BASE_FONT_SIZE: number;
+  readonly BASE_FONT_WEIGHT: number;
+  readonly BASE_LETTER_SPACING: number;
 
   // Коэффициенты рендерера
   readonly SCROLL_EASING: number;
@@ -115,6 +117,7 @@ export interface BRDictionary {
   readonly BASE: string;
   readonly NEON: string;
   readonly FONT_MONO: string;
+  readonly FONT_SLAB: string;
   readonly BTN_SIZE: number;
   readonly BTN_SIZE_LG: number;
   readonly BTN_SIZE_LG_MOBILE: number;
@@ -129,6 +132,7 @@ type CssTokenKeys =
     | 'BASE'
     | 'NEON'
     | 'FONT_MONO'
+    | 'FONT_SLAB'
     | 'BTN_SIZE'
     | 'BTN_SIZE_LG'
     | 'BTN_SIZE_LG_MOBILE'
@@ -136,7 +140,7 @@ type CssTokenKeys =
 
 const entries = {
   // Тексты интерфейса
-  APP_TITLE: '...BREATHE\u00A0\u00A0\n\u00A0\u00A0RHYTHM...',
+  APP_TITLE: '...BREATHE\u00A0\u00A0\n\u00A0RHYTHM...',
   APP_SUBTITLE: '...В ритме дыхания...',
   PAUSE_TITLE: '...ПАУЗА...',
   BTN_START: 'Старт',
@@ -155,8 +159,10 @@ const entries = {
   MAX_DPR: 2,
   INTRO_START_DELAY: 250,
   SETTLE_DURATION: 200,
-  BASE_FONT: '"Courier New", monospace',
+  BASE_FONT: '"Source Code Pro", "Courier New", monospace',
   BASE_FONT_SIZE: 24,
+  BASE_FONT_WEIGHT: 400,
+  BASE_LETTER_SPACING: 0,
 
   // Коэффициенты рендерера
   SCROLL_EASING: 0.035,

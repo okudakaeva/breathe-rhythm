@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>В ритме дыхания — Breathe Rhythm Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300&family=Source+Code+Pro&display=swap"
+          rel="stylesheet"
+          media="print"
+          onload="this.media='all'">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/svg+xml"
           href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%230b0b0b'/%3E%3Crect x='3' y='3' width='94' height='94' rx='13' fill='none' stroke='%2300ffcc' stroke-width='4'/%3E%3Ctext x='-6' y='38' font-size='44'%3E✨%3C/text%3E%3Ctext x='14' y='74' font-size='62'%3E🎙️%3C/text%3E%3Ctext x='4' y='92' font-size='62'%3E🌊%3C/text%3E%3Ctext x='56' y='46' font-size='44'%3E✨%3C/text%3E%3C/svg%3E"/>
@@ -40,9 +46,13 @@
     <ui-overlay data-id="ID_PAUSE_OVERLAY" delay="350" hidden>
         <h2 class="screen-title" data-dict="PAUSE_TITLE"></h2>
         <p class="screen-subtitle" data-dict="APP_SUBTITLE"></p>
-        <ui-button data-id="ID_BTN_RESUME" class="btn-play-large" data-dict="BTN_RESUME">
-            <ui-icon name="play" slot="icon"></ui-icon>
-        </ui-button>
+        <div class="wave-area">
+            <span class="wave left" aria-hidden="true"></span>
+            <ui-button data-id="ID_BTN_RESUME" class="btn-play-large" data-dict="BTN_RESUME">
+                <ui-icon name="play" slot="icon"></ui-icon>
+            </ui-button>
+            <span class="wave" aria-hidden="true"></span>
+        </div>
     </ui-overlay>
 
     <ui-toolbar data-id="ID_TOOLBAR" hidden>
@@ -57,9 +67,13 @@
     <ui-overlay data-id="ID_START_OVERLAY" delay="0">
         <ui-logo data-dict="APP_TITLE"></ui-logo>
         <ui-subtitle data-dict="APP_SUBTITLE"></ui-subtitle>
-        <ui-button data-id="ID_BTN_INTRO" class="btn-play-large" data-dict="BTN_START">
-            <ui-icon name="play" slot="icon"></ui-icon>
-        </ui-button>
+        <div class="wave-area">
+            <span class="wave left" aria-hidden="true"></span>
+            <ui-button data-id="ID_BTN_INTRO" class="btn-play-large" data-dict="BTN_START">
+                <ui-icon name="play" slot="icon"></ui-icon>
+            </ui-button>
+            <span class="wave" aria-hidden="true"></span>
+        </div>
         <div class="key-hints">
             <span><kbd data-dict="HINT_SPACE_KEY"></kbd> <span data-dict="HINT_SPACE_DESC"></span></span>
             <span><kbd data-dict="HINT_RESET_KEY"></kbd> <span data-dict="HINT_RESET_DESC"></span></span>

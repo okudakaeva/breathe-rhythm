@@ -1,6 +1,7 @@
-import { BRContext, BREngineConfig } from '../types.ts';
+import { BRContext, BRCtxMetrics, BREngineConfig } from '../types.ts';
 import { BRAccentsBase, BRMaskParticle, BRRenderSegment } from './br_accents_base.ts';
 import { brDict } from '../br_dictionary.ts';
+import { BRUtils } from '../br_utils';
 
 export type BRTextMaskMode = 'sand' | 'fireflies' | 'glitter' | 'breeze' | 'frost' | 'constellation';
 
@@ -371,15 +372,16 @@ export class BRAccentsMask {
 
   public static sampleTextMask (
       ctx: BRContext,
-      font: string,
+      metrix: BRCtxMetrics,
       text: string,
       mode: BRTextMaskMode = 'sand',
       alphaThreshold: number = CONFIG.ALPHA_THRESHOLD
   ): BRMaskParticle[] {
-    ctx.font = font;
+    ctx.font = metrix.font;
+    ctx.letterSpacing = metrix.letterSpacing;
 
     const textWidth = Math.ceil(ctx.measureText(text).width);
-    const fontSize = BRAccentsBase.extractFontSize(font);
+    const fontSize = BRUtils.extractFontSize(metrix.font);
     const padY = Math.ceil(fontSize * CONFIG.PAD_Y_RATIO);
     const maskW = Math.max(brDict['SPRITE_MIN_SIZE'], textWidth + CONFIG.PAD_X * 2);
     const maskH = Math.max(brDict['SPRITE_MIN_SIZE'], Math.ceil(fontSize * CONFIG.HEIGHT_RATIO) + padY * 2);
@@ -394,7 +396,8 @@ export class BRAccentsMask {
       return [];
     }
 
-    octx.font = font;
+    octx.font = metrix.font;
+    octx.letterSpacing = metrix.letterSpacing;
     octx.textAlign = 'left';
     octx.textBaseline = 'alphabetic';
     octx.fillStyle = CONFIG.MASK_FILL_COLOR;

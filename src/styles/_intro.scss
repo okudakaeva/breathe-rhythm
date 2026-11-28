@@ -105,8 +105,8 @@ $sub-dot-steps: (
     text-shadow: none;
   }
   75% {
-    color: var(--neon);
-    text-shadow: 0 0 16px rgb(from var(--neon) r g b / 0.85), 0 0 28px rgb(from var(--neon) r g b / 0.45);
+    color: var(--base);
+    text-shadow: 0 0 16px rgb(from var(--base) r g b / 0.85), 0 0 28px rgb(from var(--base) r g b / 0.45);
   }
   100% {
     color: var(--muted);
@@ -123,7 +123,7 @@ ui-overlay#startOverlay.intro-done {
     @include cascade-dots($logo-dot-steps, false);
 
     .char {
-      animation: charTypeIn 0.35s ease calc(0.35s + var(--i) * 100ms) both;
+      animation: charTypeIn 0.5s ease calc(0.5s + var(--i) * 100ms) both;
     }
 
     .dot {
@@ -131,23 +131,23 @@ ui-overlay#startOverlay.intro-done {
     }
   }
 
-  #btnIntro,
+  .wave-area,
   .key-hints {
-    animation: bootFadeUp 0.55s v.$ease-out 2.15s both;
+    animation: bootFadeUp 0.6s v.$ease-out 2.65s both;
   }
 
   ui-subtitle {
     @include cascade-dots($sub-dot-steps, true);
 
     .subtitle {
-      animation: subtitleNeonFlash 1.05s ease-out 1.55s both;
+      animation: subtitleNeonFlash 1.05s ease-out 2.00s both;
     }
 
     .char {
       --char-step: 28px;
       --char-dist: calc(26px + var(--d, 0) * var(--char-step));
-      --char-dur: calc(0.75s + var(--d, 0) * 0.075s);
-      --char-delay: calc(1.15s + var(--d, 0) * 0.03s);
+      --char-dur: calc(0.80s + var(--d, 0) * 0.08s);
+      --char-delay: calc(1.55s + var(--d, 0) * 0.03s);
       animation: subHalfMeet var(--char-dur) v.$ease-out var(--char-delay) both;
 
       @include m.mobile {
@@ -165,7 +165,7 @@ ui-overlay#startOverlay.intro-done {
     }
 
     .dot {
-      animation: dotFlyIn var(--dot-dur, 0.6s) v.$ease-out calc(2.35s + var(--dot-delay, 0s)) both;
+      animation: dotFlyIn var(--dot-dur, 0.6s) v.$ease-out calc(2.85s + var(--dot-delay, 0s)) both;
     }
   }
 }

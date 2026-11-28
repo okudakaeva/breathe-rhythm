@@ -18,6 +18,7 @@ export interface BREngineConfig {
   lineEndDelay: number;
   finalDelay: number;
   maxShadowBlur: number;
+  letterSpacing: number;
 }
 
 export interface BRParserConfig {
@@ -35,4 +36,12 @@ export interface BRToken {
   delay: number;
   tag?: string;
   param?: string;
+}
+
+export interface BRCtxMetrics {
+  font: string;
+  letterSpacing: string;
+  paddingX: number;
+  lineHeight: number;
+  initialY: number;
 }

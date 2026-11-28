@@ -11,7 +11,8 @@ $ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --muted: rgb(from var(--white) r g b / 0.55);
   --backdrop: blur(6px);
 
-  --font-mono: 'Courier New', Courier, monospace;
+  --font-slab: 'Roboto Slab', 'Courier New', serif;
+  --font-mono: 'Source Code Pro', 'Courier New', monospace;
   --z-toolbar: 10;
   --z-overlay: 20;
   --z-drawer: 30;

@@ -27,14 +27,15 @@ const BR_ENGINE_CONFIG: BREngineConfig = {
   activeTextColor: '#ffffff',
   shadowColor: '#ffffff',
   finishedShadowColor: '#f0f0f0',
-  font: `${brDict['BASE_FONT_SIZE']}px ${brDict['BASE_FONT']}`,
+  font: `${brDict['BASE_FONT_WEIGHT']} ${brDict['BASE_FONT_SIZE']}px ${brDict['BASE_FONT']}`,
   paddingX: 80,
   paddingBottom: brDict['BTN_SIZE'] + brDict['TOOLBAR_BOTTOM'],
   lineHeight: 60,
   initialY: 70,
   lineEndDelay: 800,
   finalDelay: 1000,
-  maxShadowBlur: 25
+  maxShadowBlur: 25,
+  letterSpacing: 0.03,
 };
 
 type EnginePhase = 'idle' | 'running' | 'paused' | 'finished';

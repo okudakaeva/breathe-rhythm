@@ -1,9 +1,9 @@
-import { BRContext, BREngineConfig } from '../types.ts';
+import { BRContext, BRCtxMetrics, BREngineConfig } from '../types.ts';
 import { BRParticle } from './br_particle.ts';
 import { BRTags } from '../br_tags.ts';
 import { BRAccentsBase, BRRenderSegment } from './br_accents_base.ts';
 import { BRAccentsMask, BRTextMaskMode } from './br_accents_mask.ts';
-import { BRParticleEffectMode, BRAccentsParticle } from './br_accents_particles.ts';
+import { BRAccentsParticle, BRParticleEffectMode } from './br_accents_particles.ts';
 import { BRAccentsSyllabic } from './br_accents_syllabic.ts';
 import { BRAccentsSimple } from './br_accents_simple.ts';
 
@@ -66,14 +66,16 @@ export class BREffects {
 
   public static createSegment (
       ctx: BRContext,
-      font: string,
+      metrix: BRCtxMetrics,
       tag: string,
       text: string,
       duration: number,
       param?: string,
       activeColor: string = '#ffffff'
   ): BRRenderSegment {
-    ctx.font = font;
+    ctx.font = metrix.font;
+    ctx.letterSpacing = metrix.letterSpacing;
+
     const type = BRTags.getType(tag);
     const chars = Array.from(text);
     const charWidths = chars.map(ch => ctx.measureText(ch).width);
@@ -92,7 +94,7 @@ export class BREffects {
 
     switch (type) {
       case 'mask': {
-        segment.grains = BRAccentsMask.sampleTextMask(ctx, font, text, tag as BRTextMaskMode);
+        segment.grains = BRAccentsMask.sampleTextMask(ctx, metrix, text, tag as BRTextMaskMode);
         if (tag === 'constellation' && segment.grains.length > 0) {
           segment.constellationLinks = BRAccentsMask.buildConstellationLinks(segment.grains);
         }
@@ -100,11 +102,11 @@ export class BREffects {
       }
       case 'particles': {
         if (tag === 'wind') {
-          segment.gusts = BRAccentsParticle.createWindGusts(ctx, font, text);
+          segment.gusts = BRAccentsParticle.createWindGusts(ctx, metrix, text);
         } else {
           segment.flowParticles = BRAccentsParticle.createFlowParticles(
               ctx,
-              font,
+              metrix,
               segment,
               tag as Exclude<BRParticleEffectMode, 'wind'>
           );
@@ -112,14 +114,14 @@ export class BREffects {
         break;
       }
       case 'syllabic': {
-        segment.sprite = BRAccentsBase.createTextSprite(ctx, font, text, activeColor);
+        segment.sprite = BRAccentsBase.createTextSprite(ctx, metrix, text, activeColor);
         const syllables = BRTags.splitIntoSyllables(text);
         segment.syllables = syllables;
         segment.syllableWidths = syllables.map(s => ctx.measureText(s).width);
         break;
       }
       case 'simple': {
-        segment.sprite = BRAccentsBase.createTextSprite(ctx, font, text, activeColor);
+        segment.sprite = BRAccentsBase.createTextSprite(ctx, metrix, text, activeColor);
         break;
       }
     }
