@@ -140,7 +140,7 @@ type CssTokenKeys =
 
 const entries = {
   // Тексты интерфейса
-  APP_TITLE: '...BREATHE\u00A0\u00A0\n\u00A0\u00A0RHYTHM...',
+  APP_TITLE: '...BREATHE\u00A0\u00A0\n\u00A0RHYTHM...',
   APP_SUBTITLE: '...В ритме дыхания...',
   PAUSE_TITLE: '...ПАУЗА...',
   BTN_START: 'Старт',

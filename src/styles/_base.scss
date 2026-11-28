@@ -78,3 +78,38 @@ breathe-rhythm {
     box-shadow: 0 0 10px rgb(from var(--neon) r g b / 0.12);
   }
 }
+
+@keyframes waveBreathe {
+  0%, 100% {
+    opacity: 0.35;
+    transform: translateY(2px) scaleX(var(--wy, 1));
+  }
+  45% {
+    opacity: 0.85;
+    transform: translateY(-4px) scaleX(var(--wy, 1));
+  }
+}
+
+.wave-area {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+
+  .wave {
+    @include m.neon-title();
+    display: inline-block;
+    animation: waveBreathe 3.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) calc(var(--wy, 0) * 1.9s) infinite;
+
+    &:before {
+      content: '〰\A~';
+      display: inline-block;
+      white-space: pre;
+      line-height: 0;
+    }
+
+    &.left {
+      --wy: -1;
+    }
+  }
+}
