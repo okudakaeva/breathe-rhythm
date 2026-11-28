@@ -1,10 +1,7 @@
 import { UIComponent } from './ui_component.ts';
+import { brDict } from '../br_dictionary';
 
 export class UILogo extends UIComponent {
-  static get observedAttributes (): string[] {
-    return [...super.observedAttributes, 'label'];
-  }
-
   private splitRows = (str: string): [string, string, string, string] => {
     const [topRaw = '', bottomRaw = ''] = str.split('\n');
 
@@ -21,16 +18,8 @@ export class UILogo extends UIComponent {
           .map((ch, i) => `<span class="dot" style="--d: ${ i }">${ ch }</span>`)
           .join('');
 
-  public attributeChangedCallback (name: string, oldValue: string | null, newValue: string | null): void {
-    super.attributeChangedCallback(name, oldValue || '', newValue || '');
-
-    if (name === 'label' && oldValue !== newValue) {
-      this.updateUI();
-    }
-  }
-
   public updateUI (): void {
-    const raw = this.getAttribute('label') || '';
+    const raw = brDict['APP_TITLE'];
 
     if (!raw) {
       return;
@@ -39,14 +28,16 @@ export class UILogo extends UIComponent {
     const [topDots, topWord, bottomWord, bottomDots] = this.splitRows(raw);
 
     this.template = `
-      <div class="logo" role="heading" aria-level="1">
-        <span class="row">
+      <h1 
+      class="screen-title" 
+      aria-label="${ topWord.trim() } ${ bottomWord.trim() }">
+        <span class="row" aria-hidden="true">
           <span class="dots-left">${ this.renderDots(topDots) }</span>${ this.renderChars(topWord) }
         </span>
-        <span class="row">
+        <span class="row" aria-hidden="true">
           ${ this.renderChars(bottomWord, topWord.trim().length) }<span class="dots-right">${ this.renderDots(bottomDots) }</span>
         </span>
-      </div>
+      </h1>
     `;
 
     this.renderTemplate();

@@ -139,7 +139,7 @@ ui-overlay#startOverlay.intro-done {
   ui-subtitle {
     @include cascade-dots($sub-dot-steps, true);
 
-    .subtitle {
+    .screen-subtitle {
       animation: subtitleNeonFlash 1.05s ease-out 2.00s both;
     }
 

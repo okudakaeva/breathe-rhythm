@@ -1,14 +1,10 @@
 @use "./mixins" as m;
 
 ui-overlay {
+  @include m.overlay-base;
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 32px;
   background: rgb(from var(--overlay) r g b / 0.58);
   backdrop-filter: var(--backdrop);
   -webkit-backdrop-filter: var(--backdrop);
@@ -16,10 +12,6 @@ ui-overlay {
   visibility: hidden;
   pointer-events: none;
   transition: opacity var(--transition-smooth), visibility var(--transition-smooth);
-
-  @include m.landscape-compact {
-    gap: 18px;
-  }
 
   > * {
     transform: translateY(8px);

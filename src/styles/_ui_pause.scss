@@ -1,0 +1,5 @@
+@use "./mixins" as m;
+
+ui-pause {
+  @include m.overlay-base;
+}

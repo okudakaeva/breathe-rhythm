@@ -44,8 +44,7 @@
     <breathe-rhythm data-id="ID_ENGINE" visible></breathe-rhythm>
 
     <ui-overlay data-id="ID_PAUSE_OVERLAY" delay="350" hidden>
-        <h2 class="screen-title" data-text="PAUSE_TITLE"></h2>
-        <p class="screen-subtitle" data-text="APP_SUBTITLE"></p>
+        <ui-pause></ui-pause>
         <ui-play>
             <ui-button data-id="ID_BTN_RESUME" class="btn-play-large" data-text="BTN_RESUME">
                 <ui-icon name="play" slot="icon"></ui-icon>
@@ -63,8 +62,8 @@
     </ui-toolbar>
 
     <ui-overlay data-id="ID_START_OVERLAY" delay="0">
-        <ui-logo data-text="APP_TITLE"></ui-logo>
-        <ui-subtitle data-text="APP_SUBTITLE"></ui-subtitle>
+        <ui-logo></ui-logo>
+        <ui-subtitle></ui-subtitle>
         <ui-play>
             <ui-button data-id="ID_BTN_INTRO" class="btn-play-large" data-text="BTN_START">
                 <ui-icon name="play" slot="icon"></ui-icon>

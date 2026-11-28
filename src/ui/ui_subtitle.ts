@@ -1,18 +1,7 @@
 import { UIComponent } from './ui_component.ts';
+import { brDict } from '../br_dictionary';
 
 export class UISubtitle extends UIComponent {
-  static get observedAttributes (): string[] {
-    return [...super.observedAttributes, 'label'];
-  }
-
-  public attributeChangedCallback (name: string, oldValue: string | null, newValue: string | null): void {
-    super.attributeChangedCallback(name, oldValue || '', newValue || '');
-
-    if (name === 'label' && oldValue !== newValue) {
-      this.updateUI();
-    }
-  }
-
   private renderDots (dots: string): string {
     return dots.split('').map(d => `<span class="dot">${d}</span>`).join('');
   }
@@ -44,7 +33,7 @@ export class UISubtitle extends UIComponent {
   }
 
   public updateUI (): void {
-    const raw = this.getAttribute('label') || '';
+    const raw = brDict['APP_SUBTITLE'];
 
     if (!raw) {
       return;
@@ -55,8 +44,24 @@ export class UISubtitle extends UIComponent {
     const [leftPart, rightPart] = this.splitCore(coreText);
 
     this.template = `
-        <p class="subtitle">
-          <span class="sub-dots-left">${this.renderDots(leftDots)}</span><span class="sub-half sub-left">${this.renderHalf(leftPart, false)}</span><span class="sub-half sub-right">${this.renderHalf(rightPart, true)}</span><span class="sub-dots-right">${this.renderDots(rightDots)}</span>
+        <p 
+        class="screen-subtitle" 
+        aria-label="${ leftPart.trim() } ${ rightPart.trim() }" 
+        aria-level="2" 
+        role="heading">
+          <span 
+          class="sub-dots-left" 
+          aria-hidden="true"
+          >${ this.renderDots(leftDots) }</span><span 
+          class="sub-half sub-left" 
+          aria-hidden="true"
+          >${ this.renderHalf(leftPart, false) }</span><span 
+          class="sub-half sub-right" 
+          aria-hidden="true"
+          >${ this.renderHalf(rightPart, true) }</span><span 
+          class="sub-dots-right" 
+          aria-hidden="true"
+          >${ this.renderDots(rightDots) }</span>
         </p>
     `;
 

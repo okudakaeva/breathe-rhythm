@@ -2,13 +2,10 @@
 
 .screen-title {
   @include m.neon-title;
-  white-space: pre-line;
+  display: block;
 }
 
 ui-logo {
-  @include m.neon-title;
-  display: block;
-
   .row {
     display: block;
     white-space: nowrap;

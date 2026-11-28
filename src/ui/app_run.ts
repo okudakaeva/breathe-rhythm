@@ -18,7 +18,7 @@ const appRun = (root: ParentNode = document): void => {
 
       switch (key) {
         case 'text': {
-          if (el.tagName === 'UI-BUTTON' || el.tagName === 'UI-LOGO' || el.tagName === 'UI-SUBTITLE') {
+          if (el.tagName === 'UI-BUTTON') {
             el.setAttribute('label', val);
           } else {
             el.textContent = val;
