@@ -9,14 +9,15 @@
 @mixin neon-title {
   margin: 0;
   text-align: center;
+  font-family: var(--font-slab);
   font-size: clamp(32px, 5vw, 44px);
-  font-weight: 400;
+  font-weight: 300;
   line-height: 1.25;
   letter-spacing: 0.35em;
   padding-left: 0.35em;
   color: var(--neon);
   text-transform: uppercase;
-  text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.65);
+  text-shadow: 0 0 14px rgb(from var(--neon) r g b / 0.45);
   user-select: none;
 
   @include landscape-compact {
@@ -25,6 +26,7 @@
 
   @include mobile {
     letter-spacing: 0.25em;
+    padding-left: 0.25em;
   }
 }
 
@@ -32,6 +34,7 @@
   margin: 0;
   color: var(--muted);
   font-size: 18px;
+  letter-spacing: 0.05em;
 }
 
 @mixin landscape-compact {

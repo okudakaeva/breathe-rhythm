@@ -1,6 +1,7 @@
-import { BRContext, BREngineConfig } from '../types.ts';
+import { BRContext, BRCtxMetrics, BREngineConfig } from '../types.ts';
 import { BRParticle } from './br_particle.ts';
 import { BRAccentsBase, BRFlowParticle, BRRenderSegment, BRWindGustParticle } from './br_accents_base.ts';
+import { BRUtils } from '../br_utils';
 
 export type BRParticleEffectMode = 'wind' | 'embers' | 'snow' | 'sparks' | 'dandelion';
 
@@ -189,15 +190,16 @@ export class BRAccentsParticle {
 
   public static createWindGusts (
       ctx: BRContext,
-      font: string,
+      metrix: BRCtxMetrics,
       text: string,
       wavesCount: number = CONFIG.WIND_SPAWN.defaultWaves
   ): BRWindGustParticle[] {
-    ctx.font = font;
+    ctx.font = metrix.font;
+    ctx.letterSpacing = metrix.letterSpacing;
 
     const cfg = CONFIG.WIND_SPAWN;
     const textWidth = Math.max(cfg.minTextWidth, Math.ceil(ctx.measureText(text).width));
-    const fontSize = BRAccentsBase.extractFontSize(font);
+    const fontSize = BRUtils.extractFontSize(metrix.font);
     const gusts: BRWindGustParticle[] = [];
     const budget = BRAccentsBase.isMobileViewport() ? cfg.mobile : cfg.desktop;
     const count = Math.min(budget.maxCount, Math.max(budget.minCount, Math.round(textWidth * budget.density)));
@@ -224,16 +226,17 @@ export class BRAccentsParticle {
 
   public static createFlowParticles (
       ctx: BRContext,
-      font: string,
+      metrix: BRCtxMetrics,
       segment: BRRenderSegment,
       mode: Exclude<BRParticleEffectMode, 'wind'>
   ): BRFlowParticle[] {
-    ctx.font = font;
+    ctx.font = metrix.font;
+    ctx.letterSpacing = metrix.letterSpacing;
 
     const spawnCfg = CONFIG.FLOW_SPAWN;
     const chars = Array.from(segment.text);
     const totalChars = Math.max(1, chars.length);
-    const fontSize = BRAccentsBase.extractFontSize(font);
+    const fontSize = BRUtils.extractFontSize(metrix.font);
     const list: BRFlowParticle[] = [];
     const perCharBudget = BRAccentsBase.isMobileViewport() ? spawnCfg.perChar.mobile : spawnCfg.perChar.desktop;
     let cursorX = 0;

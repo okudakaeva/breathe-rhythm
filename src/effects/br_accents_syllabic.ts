@@ -2,6 +2,7 @@ import { BRContext, BREngineConfig } from '../types.ts';
 import { BRTags } from '../br_tags.ts';
 import { BRAccentsBase, BRRenderSegment } from './br_accents_base.ts';
 import { brDict } from '../br_dictionary.ts';
+import { BRUtils } from '../br_utils';
 
 interface BRSyllableSliceContext {
   index: number;
@@ -466,7 +467,7 @@ export class BRAccentsSyllabic {
     }
 
     const parts = this.getSyllables(segment);
-    const fontSize = BRAccentsBase.extractFontSize(config.font);
+    const fontSize = BRUtils.extractFontSize(config.font);
 
     ctx.save();
     this.forEachSyllableSlice(ctx, dpr, segment, parts, startX, y, p, cfg.spreadRatio, cfg.tailCompress, (s) => {
@@ -644,7 +645,7 @@ export class BRAccentsSyllabic {
   ): number {
     const cfg = CONFIG.SPARKLE;
     const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
-    const fontSize = BRAccentsBase.extractFontSize(config.font);
+    const fontSize = BRUtils.extractFontSize(config.font);
 
     ctx.save();
 
@@ -695,7 +696,7 @@ export class BRAccentsSyllabic {
   ): number {
     const cfg = CONFIG.ORBIT;
     const fullTextWidth = BRAccentsBase.getSegmentWidth(ctx, segment);
-    const fontSize = BRAccentsBase.extractFontSize(config.font);
+    const fontSize = BRUtils.extractFontSize(config.font);
 
     ctx.save();
 

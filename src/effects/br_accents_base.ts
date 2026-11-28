@@ -1,5 +1,6 @@
-import { BRColor, BRContext, BREffectType } from '../types.ts';
+import { BRColor, BRContext, BRCtxMetrics, BREffectType } from '../types.ts';
 import { brDict } from '../br_dictionary.ts';
+import { BRUtils } from '../br_utils';
 
 export interface BRFlowParticle {
   x: number;
@@ -111,11 +112,6 @@ export class BRAccentsBase {
     return 1 - Math.pow(1 - t, 2);
   }
 
-  public static extractFontSize (font: string): number {
-    const match = font.match(/^(\d+(?:\.\d+)?)px/);
-    return match ? parseFloat(match[1]) : brDict['BASE_FONT_SIZE'];
-  }
-
   public static fallbackText (
       ctx: BRContext,
       text: string,
@@ -157,16 +153,17 @@ export class BRAccentsBase {
 
   public static createTextSprite (
       ctx: BRContext,
-      font: string,
+      metrix: BRCtxMetrics,
       text: string,
       color: string = CONFIG.DEFAULT_COLOR,
       glowBlur: number = brDict['SPRITE_GLOW_BLUR']
   ): BRTextSprite {
-    ctx.font = font;
+    ctx.font = metrix.font;
+    ctx.letterSpacing = metrix.letterSpacing;
 
     const dpr = brDict['DPR'];
     const textWidth = Math.ceil(ctx.measureText(text).width);
-    const fontSize = this.extractFontSize(font);
+    const fontSize = BRUtils.extractFontSize(metrix.font);
 
     const padX = brDict['SPRITE_PAD_X'];
     const padY = Math.ceil(fontSize * CONFIG.SPRITE_PAD_Y_RATIO);
@@ -183,7 +180,8 @@ export class BRAccentsBase {
 
       if (octx) {
         octx.scale(dpr, dpr);
-        octx.font = font;
+        octx.font = metrix.font;
+        octx.letterSpacing = metrix.letterSpacing;
         octx.textAlign = 'left';
         octx.textBaseline = 'alphabetic';
         octx.fillStyle = color;

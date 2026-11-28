@@ -11,7 +11,7 @@
         "activeTextColor": "#ffffff",
         "shadowColor": "#ffffff",
         "finishedShadowColor": "#f0f0f0",
-        "font": "28px 'Courier New', monospace",
+        "font": "28px 'Source Code Pro', 'Courier New', monospace",
         "lineHeight": 60,
         "initialY": 70,
         "lineEndDelay": 800,

@@ -1,13 +1,7 @@
-import { BRContext, BREngineConfig } from './types.ts';
+import { BRContext, BRCtxMetrics, BREngineConfig } from './types.ts';
 import { BRAccentsBase, BREffects, BRRenderSegment } from './effects/br_effects.ts';
 import { brDict } from './br_dictionary.ts';
-
-export interface BRCtxMetrics {
-  font: string;
-  paddingX: number;
-  lineHeight: number;
-  initialY: number;
-}
+import { BRUtils } from './br_utils';
 
 export interface RenderLine {
   text: string;
@@ -24,7 +18,7 @@ export class BRRenderer {
   private readonly wordFinishedTest: RegExp;
 
   private readonly lines: RenderLine[] = [];
-  private metrics: BRCtxMetrics = { font: '', paddingX: 0, lineHeight: 0, initialY: 0 };
+  private metrics: BRCtxMetrics = { font: '', letterSpacing: '', paddingX: 0, lineHeight: 0, initialY: 0 };
 
   private activeLineIdx: number = 0;
   private currentScrollY: number = 0;
@@ -110,6 +104,7 @@ export class BRRenderer {
     this.ctx.fillStyle = this.engineConfig.bgColor;
     this.ctx.fillRect(0, 0, this.logicalWidth, this.logicalHeight);
     this.ctx.font = this.metrics.font;
+    this.ctx.letterSpacing = this.metrics.letterSpacing;
     this.ctx.textAlign = 'left';
     this.ctx.shadowBlur = 0;
     this.ctx.shadowColor = 'transparent';
@@ -277,32 +272,37 @@ export class BRRenderer {
 
     const width = this.logicalWidth;
     const scale = Math.min(1, width / brDict['MOBILE_BREAKPOINT']);
-    const fontMatch = this.engineConfig.font.match(/^(\d+(?:\.\d+)?)px\s+(.+)$/);
-    const baseFontSize = fontMatch ? parseFloat(fontMatch[1]) : brDict['BASE_FONT_SIZE'];
-    const fontFamily = fontMatch ? fontMatch[2] : brDict['BASE_FONT'];
+    const [fontWeight, baseFontSize, fontFamily] = BRUtils.parseFont(this.engineConfig.font);
     const paddingX = Math.max(brDict['MIN_PADDING_X'], Math.min(this.engineConfig.paddingX, Math.round(width * brDict['PADDING_X_RATIO'])));
     const maxWidth = Math.max(brDict['MIN_LINE_WIDTH'], width - paddingX * 2);
     let fontSize = Math.max(brDict['MIN_FONT_SIZE'], Math.round(baseFontSize * scale));
+    let letterSpacing = fontSize * this.engineConfig.letterSpacing;
 
     if (this.lines.length > 0) {
-      this.ctx.font = `${ fontSize }px ${ fontFamily }`;
+      this.ctx.font = `${fontWeight} ${ fontSize }px ${ fontFamily }`;
+      this.ctx.letterSpacing = `${letterSpacing}px`;
       const longestLineWidth = Math.max(
           0,
           ...this.lines.map(line => this.ctx.measureText(line.text).width)
       );
       if (longestLineWidth > maxWidth) {
         fontSize = Math.max(brDict['MIN_FONT_SIZE'], Math.floor(fontSize * (maxWidth / longestLineWidth)));
+        letterSpacing = fontSize * this.engineConfig.letterSpacing;
       }
     }
 
     const fontRatio = fontSize / baseFontSize;
 
     this.metrics = {
-      font: `${ fontSize }px ${ fontFamily }`,
+      font: `${fontWeight} ${ fontSize }px ${ fontFamily }`,
+      letterSpacing: `${letterSpacing}px`,
       paddingX,
       lineHeight: Math.max(brDict['MIN_LINE_HEIGHT'], Math.round(this.engineConfig.lineHeight * fontRatio)),
       initialY: Math.max(brDict['MIN_INITIAL_Y'], Math.round(this.engineConfig.initialY * scale)),
     };
+
+    this.ctx.font = this.metrics.font;
+    this.ctx.letterSpacing = this.metrics.letterSpacing;
 
     this.lines.forEach(line => {
       line.segments.forEach(seg => {
@@ -313,7 +313,7 @@ export class BRRenderer {
           BRAccentsBase.disposeTextSprite(seg.sprite);
           seg.sprite = BRAccentsBase.createTextSprite(
               this.ctx,
-              this.metrics.font,
+              this.metrics,
               seg.text,
               this.engineConfig.activeTextColor,
           );
@@ -360,7 +360,7 @@ export class BRRenderer {
     line.rendered += text;
     line.isTyping = true;
 
-    const segment = BREffects.createSegment(this.ctx, this.metrics.font, tag, text, duration, param, this.engineConfig.activeTextColor);
+    const segment = BREffects.createSegment(this.ctx, this.metrics, tag, text, duration, param, this.engineConfig.activeTextColor);
     line.segments.push(segment);
   }
 
